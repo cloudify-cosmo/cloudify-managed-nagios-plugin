@@ -235,25 +235,41 @@ def create(ctx):
         run(['restorecon', rate_storage_path], sudo=True)
 
     if props['ssl_certificate']:
-        ctx.logger.info('Deploying provided SSL certificates')
-        download_and_deploy_file_from_blueprint(
-            source=BLUEPRINT_SSL_KEY_PATH.format(
-                key_file=props['ssl_key'],
-            ),
-            destination=SSL_KEY_PATH,
-            ownership='root.root',
-            permissions='440',
-            ctx=ctx,
-        )
-        download_and_deploy_file_from_blueprint(
-            source=BLUEPRINT_SSL_CERT_PATH.format(
-                cert_file=props['ssl_certificate'],
-            ),
-            destination=SSL_CERT_PATH,
-            ownership='root.root',
-            permissions='444',
-            ctx=ctx,
-        )
+        
+        if props['ssl_certificate'].startswith("-----BEGIN CERTIFICATE-----"):
+            deploy_file(
+                data=props['ssl_key'],
+                destination=SSL_KEY_PATH,
+                ownership='root.root',
+                permissions='440',
+                sudo=True,
+            )
+            deploy_file(
+                data=props['ssl_certificate'],
+                destination=SSL_CERT_PATH,
+                ownership='root.root',
+                permissions='444',
+                sudo=True,
+            )
+        else:
+            download_and_deploy_file_from_blueprint(
+                source=BLUEPRINT_SSL_KEY_PATH.format(
+                    key_file=props['ssl_key'],
+                ),
+                destination=SSL_KEY_PATH,
+                ownership='root.root',
+                permissions='440',
+                ctx=ctx,
+            )
+            download_and_deploy_file_from_blueprint(
+                source=BLUEPRINT_SSL_CERT_PATH.format(
+                    cert_file=props['ssl_certificate'],
+                ),
+                destination=SSL_CERT_PATH,
+                ownership='root.root',
+                permissions='444',
+                ctx=ctx,
+            )
     else:
         ctx.logger.info('Generating SSL certificate')
         generate_certs(SSL_KEY_PATH, SSL_CERT_PATH, ctx.logger)
