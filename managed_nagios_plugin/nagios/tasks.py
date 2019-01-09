@@ -82,7 +82,7 @@ def create(ctx):
     # Prepare SELinux context for trap handler
     tmp_path = tempfile.mkdtemp()
     with open(
-            os.path.join(tmp_path, 'cloudify-nagios-snmp-trap-handler.te'), 'w',
+        os.path.join(tmp_path, 'cloudify-nagios-snmp-trap-handler.te'), 'w',
     ) as policy_handle:
         policy_handle.write(pkgutil.get_data(
             'managed_nagios_plugin',
@@ -235,6 +235,7 @@ def create(ctx):
         run(['restorecon', rate_storage_path], sudo=True)
 
     if props['ssl_certificate']:
+
         if props['ssl_certificate'].startswith("-----BEGIN CERTIFICATE-----"):
             deploy_file(
                 data=props['ssl_key'],
@@ -603,14 +604,14 @@ def delete(ctx):
 
     ctx.logger.info('Removing leftover data, configuration, and scripts')
     for path in (
-            '/etc/nagios',
-            '/etc/httpd',
-            '/usr/lib64/nagios',
-            '/usr/local/www/nagiosrest',
-            '/var/spool/nagios',
-            '/var/log/nagios',
-            '/etc/snmp',
-            '/var/spool/incron/root',
+        '/etc/nagios',
+        '/etc/httpd',
+        '/usr/lib64/nagios',
+        '/usr/local/www/nagiosrest',
+        '/var/spool/nagios',
+        '/var/log/nagios',
+        '/etc/snmp',
+        '/var/spool/incron/root',
     ):
         run(['rm', '-rf', path], sudo=True)
 
