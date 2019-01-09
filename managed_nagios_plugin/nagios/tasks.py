@@ -82,7 +82,7 @@ def create(ctx):
     # Prepare SELinux context for trap handler
     tmp_path = tempfile.mkdtemp()
     with open(
-        os.path.join(tmp_path, 'cloudify-nagios-snmp-trap-handler.te'), 'w',
+            os.path.join(tmp_path, 'cloudify-nagios-snmp-trap-handler.te'), 'w',
     ) as policy_handle:
         policy_handle.write(pkgutil.get_data(
             'managed_nagios_plugin',
@@ -235,7 +235,6 @@ def create(ctx):
         run(['restorecon', rate_storage_path], sudo=True)
 
     if props['ssl_certificate']:
-        
         if props['ssl_certificate'].startswith("-----BEGIN CERTIFICATE-----"):
             deploy_file(
                 data=props['ssl_key'],
@@ -571,7 +570,9 @@ def configure(ctx):
 @operation
 def start(ctx):
     ctx.logger.info('Enabling and starting nagios and httpd services')
-    services = ['nagios', 'httpd', 'nagiosrest-gunicorn', 'incrond']
+    services = ['nagios', 'incrond']
+    if ctx.node.properties['start_nagiosrest']:
+        services.append(['nagios', 'httpd'])
     if ctx.node.properties['trap_community']:
         services.append('snmptrapd')
     for service in services:
@@ -602,14 +603,14 @@ def delete(ctx):
 
     ctx.logger.info('Removing leftover data, configuration, and scripts')
     for path in (
-        '/etc/nagios',
-        '/etc/httpd',
-        '/usr/lib64/nagios',
-        '/usr/local/www/nagiosrest',
-        '/var/spool/nagios',
-        '/var/log/nagios',
-        '/etc/snmp',
-        '/var/spool/incron/root',
+            '/etc/nagios',
+            '/etc/httpd',
+            '/usr/lib64/nagios',
+            '/usr/local/www/nagiosrest',
+            '/var/spool/nagios',
+            '/var/log/nagios',
+            '/etc/snmp',
+            '/var/spool/incron/root',
     ):
         run(['rm', '-rf', path], sudo=True)
 
@@ -734,3 +735,12 @@ def reconcile_monitoring(ctx, only_deployments=None, only_tenants=None):
                         'of tenant and deployment filtering left no targets '
                         'or there are no monitored deployments using the '
                         'nagiosrest plugin on the cloudify manager.')
+
+
+@operation
+def start_nagiosrest(ctx):
+    ctx.logger.info('Enabling and starting nagios and httpd services')
+    services = ['httpd', 'nagiosrest-gunicorn']
+    for service in services:
+        enable_service(service)
+        start_service(service)

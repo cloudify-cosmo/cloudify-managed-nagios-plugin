@@ -114,6 +114,11 @@ node_types:
                     the ssl directory.
                     If this is provided, the ssl_certificate must also be provided.
                 default: null
+            start_nagiosrest:
+                description: >
+                    Start rest service, or do it later, via EnableNagiosRest node.
+                default:
+                    true
         interfaces:
             cloudify.interfaces.lifecycle:
                 create:
@@ -568,6 +573,13 @@ node_types:
                 delete:
                     implementation: managed_nagios.managed_nagios_plugin.mib.tasks.delete
                     inputs: {}
+    cloudify.nagios.nodes.EnableNagiosRest:
+        derived_from: cloudify.nodes.ApplicationModule
+        interfaces:
+            cloudify.interfaces.lifecycle:
+                create:
+                    implementation: managed_nagios.managed_nagios_plugin.nagios.tasks.start_nagiosrest
+
 
 relationships:
     cloudify.nagios.target_type_checks:
