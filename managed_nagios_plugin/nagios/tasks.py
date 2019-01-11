@@ -38,7 +38,7 @@ SSL_KEY_PATH = '/etc/nagios/ssl.key'
 SSL_CERT_PATH = '/etc/nagios/ssl.crt'
 BLUEPRINT_SSL_KEY_PATH = 'ssl/{key_file}'
 BLUEPRINT_SSL_CERT_PATH = 'ssl/{cert_file}'
-
+NAGIOSREST_SERVICES = ['nagiosrest-gunicorn', 'httpd']
 
 @operation
 def create(ctx):
@@ -573,7 +573,7 @@ def start(ctx):
     ctx.logger.info('Enabling and starting nagios and httpd services')
     services = ['nagios', 'incrond']
     if ctx.node.properties['start_nagiosrest']:
-        services.append(['nagios', 'httpd'])
+        services.extend(NAGIOSREST_SERVICES)
     if ctx.node.properties['trap_community']:
         services.append('snmptrapd')
     for service in services:

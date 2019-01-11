@@ -116,7 +116,8 @@ node_types:
                 default: null
             start_nagiosrest:
                 description: >
-                    Start rest service, or do it later, via EnableNagiosRest node.
+                    Whether to start the nagiosrest service.
+                    If this is false, it may be started later using the EnableNagiosRest operation.
                 default:
                     true
         interfaces:
