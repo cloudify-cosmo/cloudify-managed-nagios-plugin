@@ -22,7 +22,7 @@ def get_manager_details(logger):
         manager_config.update(json.load(config_handle))
 
     if not manager_config.get('cluster'):
-        manager_config['cluster'] = [manager_config['rest_host']]
+        manager_config['cluster'] = manager_config['rest_host']
 
     logger.debug('Generating base URLs for manager(s)')
     base_urls = []
