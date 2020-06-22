@@ -1,143 +1,21 @@
 version: 2.1
 
-checkout:
-  post:
-    - >
-      if [ -n "$CI_PULL_REQUEST" ]; then
-        PR_ID=${CI_PULL_REQUEST##*/}
-        git fetch origin +refs/pull/$PR_ID/merge:
-        git checkout -qf FETCH_HEAD
-      fi
-
-
-executors:
-  py27:
-    docker:
-      - image: circleci/python:2.7
-
-  wagon_generator:
-    machine:
-      image: ubuntu-1604:201903-01
-
-
-commands:
-  generate_py27_wagon:
-    steps:
-      - run:
-          name: Create Workspace Build directory.
-          command: mkdir -p workspace/build
-      - run:
-          name: Build py27 Wagon
-          command: |
-              git clone https://github.com/cloudify-cosmo/cloudify-wagon-build-containers.git
-              docker build -t cloudify-centos-7-wagon-builder cloudify-wagon-build-containers/centos_7
-              docker run -v ~/project/:/packaging cloudify-centos-7-wagon-builder
-      - run:
-          name: copy wagon to workspace
-          command: cp *.wgn workspace/build/
-      - persist_to_workspace:
-          root: workspace
-          paths:
-            - build/*
-
-  generate_rhel_py27_wagon:
-    steps:
-      - run:
-          name: Create Workspace Build directory.
-          command: mkdir -p workspace/build
-      - run:
-          name: Build RHEL 27 Wagon
-          command: |
-              git clone https://github.com/cloudify-cosmo/cloudify-wagon-build-containers.git
-              docker build -t cloudify-redhat-7-wagon-builder cloudify-wagon-build-containers/redhat_7 --build-arg USERNAME="$USERNAME" --build-arg PASSWORD="$PASSWORD"
-              docker run -v ~/project/:/packaging cloudify-redhat-7-wagon-builder
-      - run:
-          name: copy wagon to workspace
-          command: cp *.wgn workspace/build/
-      - persist_to_workspace:
-          root: workspace
-          paths:
-            - build/*
-
-  release_plugin:
-    steps:
-      - run:
-          name: Download pip
-          command: curl "https://bootstrap.pypa.io/get-pip.py" -o "get-pip.py"
-      - run:
-          name: Install pip
-          command: sudo python get-pip.py
-      - run:
-          name: Install virtualenv
-          command: pip install --user virtualenv
-      - run:
-          name: Init virtualenv
-          command: virtualenv env
-      - run:
-          name: install tox
-          command: pip install --user pygithub pyyaml==3.10
-      - run:
-          name: upgrade setuptools
-          command: pip install --upgrade setuptools
-      - run:
-          name: install local project
-          command: pip install https://github.com/cloudify-incubator/cloudify-ecosystem-test/archive/latest.zip
-      - attach_workspace:
-          at: workspace
-      - run: python .circleci/package_release.py
-
+orbs:
+  python: circleci/python@0.2.1
 
 jobs:
-  unittests_py27:
-    executor: py27
+  build-and-test:
+    executor: python/default
     steps:
       - checkout
-      - run_unittest_py27
-
-  wagon:
-    executor: wagon_generator
-    steps:
-      - checkout
-      - generate_py27_wagon
-
-  rhel_wagon:
-    executor: wagon_generator
-    steps:
-      - checkout
-      - generate_rhel_py27_wagon
-
-  release:
-    executor: py27
-    steps:
-      - checkout
-      - release_plugin
-
+      - python/load-cache
+      - python/install-deps
+      - python/save-cache
+      - run:
+          command: ./manage.py test
+          name: Test
 
 workflows:
-  version: 2.1
-  tests:
-    jobs: &all_jobs
-      - wagon:
-          filters:
-            branches:
-              only: /([0-9\.]*\-build|master|dev)/
-      - rhel_wagon:
-          filters:
-            branches:
-              only: /([0-9\.]*\-build|master|dev)/
-      - release:
-          filters:
-            branches:
-              only: /master/
-          requires:
-            - wagon
-            - rhel_wagon
-  nightly:
-    triggers:
-    - schedule:
-        cron: "0 1 * * *"
-        filters:
-          branches:
-            only:
-              - master
-    jobs: *all_jobs
+  main:
+    jobs:
+      - build-and-test
