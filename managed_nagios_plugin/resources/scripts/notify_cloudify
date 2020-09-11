@@ -417,6 +417,11 @@ if __name__ == '__main__':
             logger.debug('Appending service to lock path')
             lockfile_path += '_' + args.service
             logger.debug('Full lock path: {path}'.format(path=lockfile_path))
+
+        if len(lockfile_path) > 255 > len(os.path.dirname(lockfile_path)):
+            logger.debug('Path: {path} has more than 255 characters, shortening to 255'.format(path=lockfile_path))
+            lockfile_path = lockfile_path[:254]
+
         logger.debug('Attempting to acquire lock')
         try:
             acquire_lock(lockfile_path)
