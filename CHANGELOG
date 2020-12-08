@@ -1,3 +1,4 @@
+1.0.6 - Upgrade PyYAML.
 1.0.5 - Handle clusters in Cloudify 5.x
 1.0.4 - Don't include unrelated tests in group checks.
 1.0.3 - Hash user provided names for file paths to make path length deterministic (because nagios gets upset at >255 path length); allow deletion of groups and metagroups.
