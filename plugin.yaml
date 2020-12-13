@@ -2,7 +2,7 @@ plugins:
     managed_nagios:
         executor: host_agent
         package_name: cloudify-managed-nagios-plugin
-        package_version: 1.0.5
+        package_version: 1.0.6
         source: null
         install: true
 
