@@ -1,7 +1,7 @@
 Testing notes:
 CAUTION: If you are intending to run integration tests you should pip install cloudify before the test-requirements.txt or you may have dependency version issues (e.g. wrong versions of jinja2).
-# TODO: No caution note, just rewrite this to say what to install first
+# TODO: No caution note, just rewrite this to say what to install first.
 1. For unit tests, `pip install -r test-requirements.txt`, then run `pytest tests`
 
 2. For integration tests you must `pip install cloudify`, at least version 4.4.0; you must also have a pre-created manager of the appropriate version.
-  # TODO: And fill in the config file, but we need to create a basic version of that first
+  # TODO: And fill in the config file, but we need to create a basic version of that first.
