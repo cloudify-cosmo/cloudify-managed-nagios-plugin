@@ -65,6 +65,13 @@ dsl_definitions:
       delta: "-2"
       scale_compute: true
 
+  scale_up_workflow: &specific_scale_up
+    workflow_id: scale
+    parameters:
+      scalable_entity_name: "base_group_host"
+      delta: "+2"
+      scale_compute: true
+
 node_templates:
   nagios_host:
     type: cloudify.openstack.nodes.Server
@@ -156,8 +163,10 @@ node_templates:
       aggregation_type: arithmetic_mean
       high_warning_threshold: 0.25
       high_critical_threshold: 0.75
+      high_critical_threshold: 0.0
       # Because this has no directly associated node, we must specify our targets
       action_on_high_threshold: *specific_scale_down
+      action_on_low_threshold: *specific_scale_up
       on_unknown: ignore
       check_interval: 0.25
     relationships:
