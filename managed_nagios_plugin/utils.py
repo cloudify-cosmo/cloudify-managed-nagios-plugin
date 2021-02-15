@@ -82,7 +82,7 @@ def trigger_nagios_reload(set_group=False):
                 return
     # If we reach here then either something else wasn't already restarting
     # nagios, or something else was intending to but didn't
-    delay = 5
+    delay = 15
     if os.path.exists(reload_trigger_file) and set_group:
         # We may not be able to open it if nagiosrest created it but died
         # before removing it
