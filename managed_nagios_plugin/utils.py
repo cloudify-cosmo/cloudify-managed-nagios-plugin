@@ -94,7 +94,16 @@ def trigger_nagios_reload(set_group=False):
         run(['chgrp', 'nagios', reload_trigger_file], sudo=True)
         run(['chmod', '660', reload_trigger_file])
     time.sleep(delay)
-    run(['systemctl', 'reload', 'nagios'], sudo=True)
+    try:
+        # try reload nagios service
+        run(['systemctl', 'reload', 'nagios'], sudo=True)
+    except subprocess.CalledProcessError:
+        # this means reload failed so we try restart for 3 times
+        for _ in range(3):
+            try:
+                run(['systemctl', 'restart', 'nagios'], sudo=True)
+            except subprocess.CalledProcessError:
+                time.sleep(delay)
     # If we had to set the group then we may also not own the file
     run(['rm', reload_trigger_file], sudo=set_group)
 

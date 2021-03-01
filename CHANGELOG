@@ -1,3 +1,4 @@
+1.0.7 - Handle reload Nagios with restart in case of failure.
 1.0.6 - Upgrade PyYAML.
 1.0.5 - Handle clusters in Cloudify 5.x
 1.0.4 - Don't include unrelated tests in group checks.
