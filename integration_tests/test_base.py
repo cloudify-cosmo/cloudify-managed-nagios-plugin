@@ -1,4 +1,4 @@
-import utils
+from . import utils
 
 
 def test_heal_unreachable_node():

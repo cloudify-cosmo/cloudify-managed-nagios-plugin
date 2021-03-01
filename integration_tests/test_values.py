@@ -1,6 +1,6 @@
 import time
 
-import utils
+from . import utils
 
 
 def test_heal_on_threshold_exceeded():

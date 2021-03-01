@@ -1,7 +1,8 @@
+from managed_nagios_plugin._compat import text_type
 import os
 import ssl
 
-import utils
+from . import utils
 
 
 INSECURE_PROTOCOLS = {
@@ -120,4 +121,4 @@ def check_no_insecure_ssl_protos(address):
                 '{proto_name}'.format(proto_name=proto_name)
             )
         except ssl.SSLError as err:
-            assert protocol['error'] in str(err)
+            assert protocol['error'] in text_type(err)

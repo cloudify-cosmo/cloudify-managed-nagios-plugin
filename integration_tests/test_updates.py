@@ -1,6 +1,6 @@
 import time
 
-import utils
+from . import utils
 
 
 def test_adding_and_updating_target_types():

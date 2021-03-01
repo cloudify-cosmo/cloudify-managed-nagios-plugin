@@ -15,14 +15,14 @@ from managed_nagios_plugin.utils import (
 
 def get_check_configuration_destination(target_type, name):
     return 'checks/{target_type}/{name}.cfg'.format(
-        target_type=hashlib.md5(target_type).hexdigest(),
-        name=hashlib.md5(name).hexdigest(),
+        target_type=hashlib.md5(target_type.encode('utf-8')).hexdigest(),
+        name=hashlib.md5(name.encode('utf-8')).hexdigest(),
     )
 
 
 def get_check_basedir(target_type):
     return os.path.join(BASE_OBJECTS_DIR, 'checks',
-                        hashlib.md5(target_type).hexdigest())
+                        hashlib.md5(target_type.encode('utf-8')).hexdigest())
 
 
 def create_check(logger, check_type, target_type, name, params):

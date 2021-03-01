@@ -2,6 +2,8 @@ import mock
 
 from nagios_plugin_utils import STATUS_UNKNOWN
 
+from managed_nagios_plugin._compat import text_type
+
 from tests.fakes import FakeLogger
 import tests.links.check_snmp_numeric as check_snmp_numeric
 
@@ -230,10 +232,10 @@ def test_thresholds(mock_print, exit, thresholds, run_check, get_perfdata,
     check_snmp_numeric.main(
         ['--hostname', hostname, '--oid', oid,
          '--target-type', target_type,
-         '--low-warning', str(low_warn),
-         '--low-critical', str(low_crit),
-         '--high-warning', str(high_warn),
-         '--high-critical', str(high_crit)]
+         '--low-warning', text_type(low_warn),
+         '--low-critical', text_type(low_crit),
+         '--high-warning', text_type(high_warn),
+         '--high-critical', text_type(high_crit)]
     )
 
     check_thresholds_and_exit.assert_called_once_with(

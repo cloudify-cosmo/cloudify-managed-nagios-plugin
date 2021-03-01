@@ -2,6 +2,8 @@ import hashlib
 import json
 import os
 
+from managed_nagios_plugin._compat import text_type
+
 from constants import (
     BASE_OBJECTS_DIR,
 )
@@ -212,7 +214,7 @@ def create_meta_group(logger,
         'check_interval': check_interval,
     }
     logger.debug(
-        'Full check configuration: {conf}'.format(conf=str(check_config))
+        'Full check configuration: {conf}'.format(conf=text_type(check_config))
     )
     deploy_configuration_file(
         logger,
@@ -239,7 +241,7 @@ def create_group_instance(logger,
         group_config = json.load(config_handle)
     check_config = group_config['check_configuration']
     logger.debug(
-        'Check configuration loaded: {conf}'.format(conf=str(check_config))
+        'Check configuration loaded: {conf}'.format(conf=text_type(check_config))
     )
 
     logger.debug('Setting reaction target to {target}'.format(
@@ -303,7 +305,7 @@ def create_group_instance(logger,
         'tenant': tenant,
     })
     logger.debug(
-        'Full check configuration: {conf}'.format(conf=str(check_config))
+        'Full check configuration: {conf}'.format(conf=text_type(check_config))
     )
     deploy_configuration_file(
         logger,

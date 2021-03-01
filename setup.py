@@ -24,6 +24,7 @@ setup(
         'managed_nagios_plugin.target_type',
     ],
     install_requires=['cloudify-common>=4.4.0',
-                      'Jinja2>=2.7.2'],
+                      'Jinja2>=2.7.2',
+                      'future'],
     package_data={'managed_nagios_plugin': get_resources()},
 )

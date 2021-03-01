@@ -1,5 +1,5 @@
 import time
-import utils
+from . import utils
 
 
 def test_scale_down_on_group_threshold_breach():

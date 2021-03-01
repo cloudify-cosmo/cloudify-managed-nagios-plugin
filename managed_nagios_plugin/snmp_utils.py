@@ -1,4 +1,6 @@
 import subprocess
+from managed_nagios_plugin._compat import text_type
+from managed_nagios_plugin.utils import _decode_if_bytes
 
 
 class OIDLookup(object):
@@ -6,7 +8,7 @@ class OIDLookup(object):
 
     def get(self, oids):
         single_lookup = False
-        if isinstance(oids, basestring):
+        if isinstance(oids, text_type):
             single_lookup = True
             oids = [oids]
 
@@ -23,7 +25,7 @@ class OIDLookup(object):
             results[oid] = self._normalised_oids[oid]
 
         if single_lookup:
-            return results.values()[0]
+            return list(results.values())[0]
         else:
             return results
 
@@ -55,9 +57,9 @@ class OIDLookup(object):
                         check_oids,
                         [
                             item.strip() for item in
-                            subprocess.check_output(
+                            _decode_if_bytes(subprocess.check_output(
                                 command + check_oids
-                            ).split('\n\n')
+                            )).split('\n\n')
                         ],
                     )
                 )

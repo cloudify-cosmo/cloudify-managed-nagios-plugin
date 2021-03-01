@@ -1,5 +1,7 @@
 import mock
 
+from managed_nagios_plugin._compat import text_type
+
 import nagios_plugin_utils
 
 
@@ -19,7 +21,7 @@ def test_output_and_exit_rate(mock_print, exit):
     result, result_perfdata = mock_print_arg.split('|')
 
     assert perfdata == result_perfdata
-    assert str(value) in result
+    assert text_type(value) in result
     assert state in result
     assert level in result
     assert result.startswith('SNMP RATE')
@@ -43,7 +45,7 @@ def test_output_and_exit_non_rate(mock_print, exit):
     result, result_perfdata = mock_print_arg.split('|')
 
     assert perfdata == result_perfdata
-    assert str(value) in result
+    assert text_type(value) in result
     assert state in result
     assert level in result
     assert result.startswith('SNMP ')
@@ -68,7 +70,7 @@ def test_output_and_exit_bad_state(mock_print, exit):
     result, result_perfdata = mock_print_arg.split('|')
 
     assert perfdata == result_perfdata
-    assert str(value) in result
+    assert text_type(value) in result
     assert state in result
     assert level in result
     assert result.startswith('SNMP ')
