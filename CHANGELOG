@@ -1,5 +1,6 @@
-1.0.7 - Add ignore flag processing to check_group_aggregate and check_group_meta_aggregate
+1.0.7 - Add ignore flag processing to check_group_aggregate and check_group_meta_aggregate.
       - Handle reload Nagios with restart in case of failure.
+      - Support Python 3.
 1.0.6 - Upgrade PyYAML.
 1.0.5 - Handle clusters in Cloudify 5.x
 1.0.4 - Don't include unrelated tests in group checks.
