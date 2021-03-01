@@ -110,6 +110,8 @@ def trigger_nagios_reload(set_group=False):
         for _ in range(3):
             try:
                 run(['systemctl', 'restart', 'nagios'], sudo=True)
+                # if it succeed no need for other trials
+                break
             except subprocess.CalledProcessError:
                 time.sleep(delay)
     # If we had to set the group then we may also not own the file

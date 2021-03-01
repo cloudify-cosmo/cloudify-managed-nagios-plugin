@@ -1,7 +1,6 @@
 import hashlib
 import json
 import os
-from builtins import object
 
 from managed_nagios_plugin._compat import text_type
 from cloudify.exceptions import NonRecoverableError
