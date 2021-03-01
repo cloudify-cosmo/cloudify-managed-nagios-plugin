@@ -81,10 +81,10 @@ node_types:
             nagios_web_password:
                 description: >
                     Password for accessing nagios web interface.
-            cloudify_manager_username: 
+            cloudify_manager_username:
                 description: >
                     Username for cloudify account permitted to heal and scale monitored nodes.
-            cloudify_manager_password: 
+            cloudify_manager_password:
                 description: >
                     Password for cloudify account permitted to heal and scale monitored nodes.
             trap_community:
