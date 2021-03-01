@@ -15,7 +15,7 @@ from managed_nagios_plugin.utils import (
     deploy_configuration_file,
     deploy_file,
     make_config_subdir,
-    run,
+    run
 )
 
 
@@ -96,7 +96,7 @@ def create_group(ctx):
         destination=os.path.join(
             BASE_OBJECTS_DIR,
             'groups/types/{name}.json'.format(
-                name=hashlib.md5(name).hexdigest(),
+                name=hashlib.md5(name.encode('utf-8')).hexdigest(),
             )
         ),
         sudo=True,
@@ -134,7 +134,7 @@ def create_group(ctx):
 @operation
 def delete_group(ctx):
     props = ctx.node.properties
-    name = props['name']
+    name = props['name'].encode('utf-8')
 
     members_base = os.path.join(BASE_OBJECTS_DIR, 'groups/members')
     members_path = os.path.join(members_base, '{tenant}/{name}')
@@ -142,8 +142,8 @@ def delete_group(ctx):
         run(
             [
                 'rm', '-rf', members_path.format(
-                    tenant=hashlib.md5(tenant).hexdigest(),
-                    name=hashlib.md5(name).hexdigest(),
+                    tenant=hashlib.md5(tenant.encode('utf-8')).hexdigest(),
+                    name=hashlib.md5(name.encode('utf-8')).hexdigest(),
                 )
             ],
             sudo=True,
@@ -156,8 +156,8 @@ def delete_group(ctx):
         run(
             [
                 'rm', '-f', group_tenant_conf_path.format(
-                    tenant=hashlib.md5(tenant).hexdigest(),
-                    name=hashlib.md5(name).hexdigest(),
+                    tenant=hashlib.md5(tenant.encode('utf-8')).hexdigest(),
+                    name=hashlib.md5(name.encode('utf-8')).hexdigest(),
                 ),
             ],
             sudo=True,
@@ -168,6 +168,6 @@ def delete_group(ctx):
         'groups/types/{name}.cfg',
     ):
         group_conf_path = os.path.join(BASE_OBJECTS_DIR, group_conf).format(
-            name=hashlib.md5(name).hexdigest(),
+            name=hashlib.md5(name.encode('utf-8')).hexdigest(),
         )
         run(['rm', '-f', group_conf_path], sudo=True)

@@ -1,3 +1,4 @@
+from managed_nagios_plugin._compat import text_type
 import os
 import pkgutil
 import re
@@ -7,12 +8,19 @@ import time
 
 import jinja2
 
-from constants import (
+from .constants import (
     OBJECT_DIR_PERMISSIONS,
     OBJECT_OWNERSHIP,
     OBJECT_PERMISSIONS,
     BASE_OBJECTS_DIR,
 )
+
+
+def _decode_if_bytes(input):
+    if isinstance(input, bytes):
+        return input.decode()
+    else:
+        return input
 
 
 def yum_install(packages):
@@ -24,7 +32,7 @@ def yum_remove(packages):
 
 
 def _yum_action(action, packages):
-    if isinstance(packages, basestring):
+    if isinstance(packages, text_type):
         packages = [packages]
 
     yum_install_command = ['yum', action, '-y']
@@ -82,19 +90,30 @@ def trigger_nagios_reload(set_group=False):
                 return
     # If we reach here then either something else wasn't already restarting
     # nagios, or something else was intending to but didn't
-    delay = 5
+    delay = 15
     if os.path.exists(reload_trigger_file) and set_group:
         # We may not be able to open it if nagiosrest created it but died
         # before removing it
         run(['rm', reload_trigger_file], sudo=True)
     with open(reload_trigger_file, 'w') as trigger_handle:
-        trigger_handle.write(str(current_time + delay))
+        trigger_handle.write(text_type(current_time + delay))
     if set_group:
         # Allow nagios rest to delete this file
         run(['chgrp', 'nagios', reload_trigger_file], sudo=True)
         run(['chmod', '660', reload_trigger_file])
     time.sleep(delay)
-    run(['systemctl', 'reload', 'nagios'], sudo=True)
+    try:
+        # try reload nagios service
+        run(['systemctl', 'reload', 'nagios'], sudo=True)
+    except subprocess.CalledProcessError:
+        # this means reload failed so we try restart for 3 times
+        for _ in range(3):
+            try:
+                run(['systemctl', 'restart', 'nagios'], sudo=True)
+                # if it succeed no need for other trials
+                break
+            except subprocess.CalledProcessError:
+                time.sleep(delay)
     # If we had to set the group then we may also not own the file
     run(['rm', reload_trigger_file], sudo=set_group)
 
@@ -111,6 +130,8 @@ def deploy_file(data, destination,
                 ownership=OBJECT_OWNERSHIP,
                 permissions=OBJECT_PERMISSIONS,
                 sudo=False, template_params=None):
+    data = _decode_if_bytes(data)
+
     if template_params:
         data = jinja2.Template(data).render(**template_params)
 
@@ -178,7 +199,7 @@ def remove_configuration_file(logger, configuration_path,
     try:
         run(['mv', configuration_path, temp_location], sudo=sudo)
     except subprocess.CalledProcessError as err:
-        if 'No such file or directory' in str(err) and ignore_missing:
+        if 'No such file or directory' in text_type(err) and ignore_missing:
             validate = False
 
     if validate:

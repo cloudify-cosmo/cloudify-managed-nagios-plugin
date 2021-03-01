@@ -1,6 +1,8 @@
 import hashlib
 import subprocess
 
+from managed_nagios_plugin._compat import text_type
+
 import mock
 
 import nagios_plugin_utils
@@ -143,7 +145,7 @@ def test_run_check_bad_output(mock_print, exit, mock_subproc, mock_os,
     assert exit_output == mock_print_arg
     logger.string_appears_in('error',
                              ('unknown or error',
-                              'status', str(exit_status),
+                              'status', text_type(exit_status),
                               'output', exit_output))
 
     exit.assert_called_once_with(exit_status)
@@ -222,7 +224,7 @@ def test_run_check_ignore_not_unknown(mock_print, exit, mock_subproc,
     assert exit_output == mock_print_arg
     logger.string_appears_in('error',
                              ('unknown or error',
-                              'status', str(exit_status),
+                              'status', text_type(exit_status),
                               'output', exit_output))
 
     exit.assert_called_once_with(exit_status)

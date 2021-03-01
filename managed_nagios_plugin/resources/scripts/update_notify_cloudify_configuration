@@ -3,7 +3,7 @@ import json
 import os
 import sys
 
-from utils import run
+import subprocess
 
 NOTIFY_PLUGIN_CONFIG = "/etc/nagios/notify_plugin.cfg"
 NOTIFY_PLUGIN_CERT = "/etc/nagios/notify_plugin.crt"
@@ -36,13 +36,19 @@ def save_config(config):
 
 def copy_ssl_cert(config):
     cert_path = config['local_rest_cert_file']
-    run(['cp', cert_path, NOTIFY_PLUGIN_CERT])
+    subprocess.check_output(
+        ['cp', cert_path, NOTIFY_PLUGIN_CERT], stderr=subprocess.STDOUT,
+    )
 
 
 def correct_permissions():
     for path in NOTIFY_PLUGIN_CERT, NOTIFY_PLUGIN_CONFIG:
-        run(['chown', 'nagios.{{group}}', path])
-        run(['chmod', '440', path])
+        subprocess.check_output(
+            ['chown', 'nagios.{{group}}', path], stderr=subprocess.STDOUT,
+        )
+        subprocess.check_output(
+            ['chmod', '440', path], stderr=subprocess.STDOUT,
+        )
 
 
 def main(source_path):

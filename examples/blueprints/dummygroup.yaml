@@ -1,0 +1,88 @@
+tosca_definitions_version: cloudify_dsl_1_3
+
+imports:
+  - https://cloudify.co/spec/cloudify/5.1.0/types.yaml
+  - http://www.getcloudify.org/spec/openstack-plugin/2.0.1/plugin.yaml
+  - plugin:cloudify-nagiosrest-plugin
+  - plugin:arbitrary-command-plugin
+
+inputs:
+  image: {}
+  flavor: {}
+  agent_user:
+    default: centos
+  management_network_name: {}
+  key_name: {}
+
+dsl_definitions:
+  openstack_config: &openstack_config
+    username: { get_secret: keystone_username }
+    password: { get_secret: keystone_password }
+    tenant_name: { get_secret: keystone_tenant_name }
+    auth_url: { get_secret: keystone_url }
+    region: { get_secret: region }
+
+node_types:
+  monitoredvm:
+    derived_from: cloudify.openstack.nodes.Server
+    properties:
+      nagiosrest_monitoring:
+        type: cloudify.datatypes.nagiosrest.Properties
+    interfaces:
+      cloudify.interfaces.monitoring:
+        start: nagiosrest.nagiosrest_plugin.tasks.add_monitoring
+        stop: nagiosrest.nagiosrest_plugin.tasks.remove_monitoring
+
+
+node_templates:
+  check_group_instance:
+    type: cloudify.nagiosrest.nodes.GroupInstance
+    properties:
+      group_type: Test check group
+      group_name: crossdeploymentgroup1
+      reaction_target: basegroup1
+      nagiosrest_monitoring:
+        address: { get_secret: nagiosrest_address }
+        certificate: { get_secret: nagiosrest_certificate }
+        username: { get_secret: nagiosrest_user }
+        password: { get_secret: nagiosrest_pass }
+
+  base_group_host:
+    type: monitoredvm
+    instances:
+      deploy: 2
+    properties:
+      agent_config:
+        user: { get_input: agent_user }
+        install_method: remote
+        port: 22
+        key: { get_secret: agent_key_private }
+      server:
+        key_name: ''
+        image: { get_input: image }
+        flavor: { get_input: flavor }
+        key_name: { get_input: key_name }
+      openstack_config: *openstack_config
+      management_network_name: { get_input: management_network_name }
+      nagiosrest_monitoring:
+        target_type: basic_group_instance_type
+        groups:
+            - ["Test check group", "crossdeploymentgroup1"]
+        address: { get_secret: nagiosrest_address }
+        certificate: { get_secret: nagiosrest_certificate }
+        username: { get_secret: nagiosrest_user }
+        password: { get_secret: nagiosrest_pass }
+    relationships:
+      - type: cloudify.relationships.depends_on
+        target: check_group_instance
+
+  command:
+    type: cloudify.arbitrary_commands.nodes.executor
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: base_group_host
+
+outputs:
+  ip_address:
+    description: IP address
+    value: { get_attribute: [base_group_host, ip] }

@@ -1,3 +1,4 @@
+from managed_nagios_plugin._compat import text_type
 from contextlib import contextmanager
 from pprint import pprint
 
@@ -34,7 +35,7 @@ class FakeLogger(object):
             If a tuple or list is supplied, all elements must be present in
             a single message of the specified level.
         """
-        if isinstance(search_string, basestring):
+        if isinstance(search_string, text_type):
             search_string = [search_string]
         for message in self.messages[level]:
             if all(search in message.lower()
@@ -70,7 +71,7 @@ class FakeOidLookup(object):
         self.default = default
 
     def get(self, key):
-        if isinstance(key, basestring):
+        if isinstance(key, text_type):
             if key in self.lookups:
                 return self.lookups[key]
             else:

@@ -1,5 +1,4 @@
 #! /usr/bin/env python
-from __future__ import print_function
 
 import sys
 
@@ -16,8 +15,10 @@ from nagios_plugin_utils import (
 
 
 def calculate_mean(values):
-    return sum(values) / len(values)
-
+    l = len(values)
+    if l > 0:
+        return sum(values) / l
+    return 0.0
 
 def calculate_sum(values):
     return sum(values)
@@ -146,7 +147,7 @@ def main(args):
                 print(message)
                 sys.exit(STATUS_UNKNOWN)
 
-    if not all_values:
+    if not ignore_unknown and not all_values:
         message = 'No results found for group checks.'
         logger.warn(message)
         print(message)

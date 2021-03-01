@@ -184,8 +184,8 @@ def groups(tenant, group_type, group_name):
             message = (
                 'Failed to apply configuration with error {err_type}: '
                 '{err_msg}'.format(
-                    err_type=str(type(err)),
-                    err_msg=str(err),
+                    err_type=text_type(type(err)),
+                    err_msg=text_type(err),
                 )
             )
             logger.error(message)
@@ -293,8 +293,8 @@ def meta_groups(tenant, group_type, group_instance_prefix):
             message = (
                 'Failed to apply configuration with error {err_type}: '
                 '{err_msg}'.format(
-                    err_type=str(type(err)),
-                    err_msg=str(err),
+                    err_type=text_type(type(err)),
+                    err_msg=text_type(err),
                 )
             )
             logger.error(message)
@@ -391,8 +391,8 @@ def targets(tenant, deployment, instance_id):
             message = (
                 'Failed to apply configuration with error {err_type}: '
                 '{err_msg}'.format(
-                    err_type=str(type(err)),
-                    err_msg=str(err),
+                    err_type=text_type(type(err)),
+                    err_msg=text_type(err),
                 )
             )
             logger.error(message)
@@ -498,7 +498,7 @@ def targets(tenant, deployment, instance_id):
             else:
                 message = 'Failed to remove {name}. Error was: {err}'.format(
                     name=instance_id,
-                    err=str(err),
+                    err=text_type(err),
                 )
                 logger.error(message)
                 return (
