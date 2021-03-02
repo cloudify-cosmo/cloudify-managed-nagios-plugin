@@ -79,7 +79,7 @@ def create(ctx):
         )
     else:
         for key, value in snmp_params.items():
-            connection_config.set('snmp_params', key, value)
+            connection_config.set('snmp_params', key, text_type(value))
         connection_config_text = _FakeFile()
         connection_config.write(connection_config_text)
         deploy_file(
