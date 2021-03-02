@@ -59,7 +59,7 @@ def create(ctx):
         )
 
     ctx.logger.info('Enabling EPEL (if required)')
-    yum_install(u'epel-release')
+    yum_install(text_type('epel-release'))
 
     ctx.logger.info('Installing required packages')
     yum_install([
