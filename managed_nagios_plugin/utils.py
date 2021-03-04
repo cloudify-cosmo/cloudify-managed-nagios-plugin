@@ -1,4 +1,7 @@
-from managed_nagios_plugin._compat import text_type
+try:
+    from ._compat import text_type
+except:
+    from _compat import text_type
 import os
 import pkgutil
 import re
@@ -8,13 +11,20 @@ import time
 
 import jinja2
 
-from .constants import (
-    OBJECT_DIR_PERMISSIONS,
-    OBJECT_OWNERSHIP,
-    OBJECT_PERMISSIONS,
-    BASE_OBJECTS_DIR,
-)
-
+try:
+    from .constants import (
+        OBJECT_DIR_PERMISSIONS,
+        OBJECT_OWNERSHIP,
+        OBJECT_PERMISSIONS,
+        BASE_OBJECTS_DIR,
+    )
+except:
+    from constants import (
+        OBJECT_DIR_PERMISSIONS,
+        OBJECT_OWNERSHIP,
+        OBJECT_PERMISSIONS,
+        BASE_OBJECTS_DIR,
+    )
 
 def _decode_if_bytes(input):
     if isinstance(input, bytes):
@@ -274,7 +284,7 @@ def download_and_deploy_file_from_blueprint(source,
 
 
 def generate_certs(key_path, cert_path, logger):
-    raw_ips = run(['/usr/sbin/ip', 'addr', 'show'])
+    raw_ips = _decode_if_bytes(run(['/usr/sbin/ip', 'addr', 'show']))
     logger.debug('Raw IP output: {raw}'.format(raw=raw_ips))
     # Find all inet and inet6 addresses (they are shown in cidr format so
     # there will be a trailing slash, e.g. inet 127.0.0.1/8)

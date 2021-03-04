@@ -99,7 +99,8 @@ def create(ctx):
     run(['rm', '-rf', tmp_path], sudo=True)
 
     ctx.logger.info('Deploying nagios plugins and SNMP trap handler')
-    for supporting_lib in ('constants.py',
+    for supporting_lib in ('_compat.py',
+                           'constants.py',
                            'utils.py',
                            'snmp_utils.py',
                            'nagios_utils.py',
@@ -155,7 +156,8 @@ def create(ctx):
             permissions='440',
             sudo=True,
         )
-    for supporting_lib in ('nagios_utils.py',
+    for supporting_lib in ('_compat.py',
+                           'nagios_utils.py',
                            'utils.py',
                            'constants.py'):
         deploy_file(
@@ -205,6 +207,16 @@ def create(ctx):
         # Must have the group of the agent user for reconcile operation to
         # work correctly
         template_params={'group': grp.getgrgid(os.getgid()).gr_name},
+    )
+    deploy_file(
+        data=pkgutil.get_data(
+            'managed_nagios_plugin',
+            '_compat.py',
+        ),
+        destination='/usr/local/bin/_compat.py',
+        ownership='root.root',
+        permissions='400',
+        sudo=True,
     )
     deploy_file(
         data=pkgutil.get_data(

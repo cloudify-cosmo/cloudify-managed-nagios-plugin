@@ -143,7 +143,7 @@ def delete_group(ctx):
             [
                 'rm', '-rf', members_path.format(
                     tenant=hashlib.md5(tenant.encode('utf-8')).hexdigest(),
-                    name=hashlib.md5(name.encode('utf-8')).hexdigest(),
+                    name=hashlib.md5(name).hexdigest(),
                 )
             ],
             sudo=True,
@@ -157,7 +157,7 @@ def delete_group(ctx):
             [
                 'rm', '-f', group_tenant_conf_path.format(
                     tenant=hashlib.md5(tenant.encode('utf-8')).hexdigest(),
-                    name=hashlib.md5(name.encode('utf-8')).hexdigest(),
+                    name=hashlib.md5(name).hexdigest(),
                 ),
             ],
             sudo=True,
@@ -168,6 +168,6 @@ def delete_group(ctx):
         'groups/types/{name}.cfg',
     ):
         group_conf_path = os.path.join(BASE_OBJECTS_DIR, group_conf).format(
-            name=hashlib.md5(name.encode('utf-8')).hexdigest(),
+            name=hashlib.md5(name).hexdigest(),
         )
         run(['rm', '-f', group_conf_path], sudo=True)

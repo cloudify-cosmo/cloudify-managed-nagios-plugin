@@ -3,8 +3,12 @@ import os
 import re
 import time
 
-from .constants import TENANT_DEPLOYMENT_HOSTGROUP
-from .utils import get_node_id
+try:
+    from .constants import TENANT_DEPLOYMENT_HOSTGROUP
+    from .utils import get_node_id
+except:
+    from constants import TENANT_DEPLOYMENT_HOSTGROUP
+    from utils import get_node_id
 
 NAGIOS_EXTERNAL_COMMAND_FILE = '/var/spool/nagios/cmd/nagios.cmd'
 NAGIOS_STATUS_FILE = '/var/log/nagios/status.dat'

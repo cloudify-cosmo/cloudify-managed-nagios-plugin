@@ -133,7 +133,7 @@ def delete(ctx):
         node_details = get_node_details_from_name(member)
         if node_details:
             node_details = {
-                key: hashlib.md5(_decode_if_bytes(value)).hexdigest()
+                key: hashlib.md5(value.encode('utf-8')).hexdigest()
                 for key, value in node_details.items()
             }
             remove_configuration_file(
@@ -148,7 +148,7 @@ def delete(ctx):
             remove_configuration_file(
                 ctx.logger,
                 'targets/{target}.cfg'.format(
-                    target=hashlib.md5(_decode_if_bytes(member)).hexdigest(),
+                    target=hashlib.md5(member.encode('utf-8')).hexdigest(),
                 ),
                 sudo=True,
                 reload_service=False,
