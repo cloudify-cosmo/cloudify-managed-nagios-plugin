@@ -1,10 +1,16 @@
-from managed_nagios_plugin._compat import text_type
+try:
+    from ._compat import text_type
+except:
+    from _compat import text_type
 import json
 import time
 
 import requests
 
-from . import nagios_utils as nagios
+try:
+    from . import nagios_utils as nagios
+except:
+    import nagios_utils as nagios
 
 
 MANAGER_CREDS_PATH = '/etc/nagios/cloudify_manager.json'

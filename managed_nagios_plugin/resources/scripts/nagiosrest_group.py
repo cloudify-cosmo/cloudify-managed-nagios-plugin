@@ -2,8 +2,7 @@ import hashlib
 import json
 import os
 
-from managed_nagios_plugin._compat import text_type
-
+from _compat import text_type
 from constants import (
     BASE_OBJECTS_DIR,
 )

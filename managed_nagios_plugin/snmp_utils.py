@@ -1,6 +1,10 @@
 import subprocess
-from managed_nagios_plugin._compat import text_type
-from managed_nagios_plugin.utils import _decode_if_bytes
+try:
+    from ._compat import text_type
+    from .utils import _decode_if_bytes
+except:
+    from _compat import text_type
+    from utils import _decode_if_bytes
 
 
 class OIDLookup(object):
