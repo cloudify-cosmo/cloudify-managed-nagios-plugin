@@ -5,6 +5,7 @@ import os
 import re
 import sys
 
+from _compat import text_type
 import logging_utils
 import nagios_utils
 import snmp_utils
@@ -96,7 +97,7 @@ def normalise_oids_and_get_trap_value(raw_details, oid_lookup, logger):
     details = {}
     for item in raw_details:
         raw_oid = item['raw_oid']
-        oid = oid_lookup.get(raw_oid)
+        oid = oid_lookup.get(text_type(raw_oid))
         logger.debug('OID {oid} has {value}'.format(
             oid=oid,
             value=item['value'],

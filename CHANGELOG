@@ -1,3 +1,4 @@
+1.0.10 - Fix timeout issue related to nagoisrest service.
 1.0.9 - Fix nagios/nagiosrest issues after python 3 support.
 1.0.8 - Fix issues after python 3 support.
 1.0.7 - Add ignore flag processing to check_group_aggregate and check_group_meta_aggregate.
