@@ -1,3 +1,4 @@
+1.0.12 - Increase timeout for httpd ProxyPass to 5 minutes.
 1.0.11 - Increase timeout for nagoisrest service to 5 minutes.
 1.0.10 - Fix timeout issue related to nagoisrest service.
 1.0.9 - Fix nagios/nagiosrest issues after python 3 support.
