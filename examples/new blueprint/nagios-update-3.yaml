@@ -274,14 +274,13 @@ node_templates:
 outputs:
   http_endpoint:
     description: Nagios URL
-    value: { concat: ['https://', { get_attribute: [virtual_ip, floating_ip_address] },
-                      '/nagios' ] }
+    value: { concat: ['https://', { get_attribute: [ip, aws_resource_id] }, '/nagios' ] }
   internal_address:
     description: Internal nagios address
-    value: { get_attribute: [nagios_host, ip] }
+    value: { get_attribute: [vm, private_ip_address] }
   external_address:
     description: External nagios address
-    value: { get_attribute: [virtual_ip, floating_ip_address] }
+    value: { get_attribute: [ip, aws_resource_id] }
   nagios_ssl_certificate:
     description: SSL certificate for accessing nagios and nagiosrest
     value: { get_attribute: [nagios, ssl_certificate] }
