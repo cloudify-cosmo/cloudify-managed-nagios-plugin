@@ -265,11 +265,11 @@ node_templates:
       - type: cloudify.relationships.contained_in
         target: nagios
 
-  command:
-    type: cloudify.arbitrary_commands.nodes.executor
-    relationships:
-      - type: cloudify.relationships.contained_in
-        target: nagios_host
+  # command:
+  #   type: cloudify.arbitrary_commands.nodes.executor
+  #   relationships:
+  #     - type: cloudify.relationships.contained_in
+  #       target: nagios_host
 
 outputs:
   http_endpoint:
