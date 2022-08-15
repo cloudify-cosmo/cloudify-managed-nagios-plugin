@@ -88,7 +88,7 @@ node_types:
         type: cloudify.datatypes.nagiosrest.Properties
     interfaces:
       cloudify.interfaces.monitoring_agent:
-        install: scripts/snmpv3_install
+        install: scripts/snmpv3_install.sh
         executor: central_deployment_agent
       cloudify.interfaces.monitoring:
         start: nagiosrest.nagiosrest_plugin.tasks.add_monitoring
