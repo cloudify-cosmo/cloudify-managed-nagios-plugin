@@ -138,7 +138,7 @@ node_templates:
     - type: cloudify.relationships.depends_on
       target: cloud_init
     - type: cloudify.relationships.depends_on
-      target: agent_key
+      target: vm_keypair
 
   ami:
     type: cloudify.nodes.aws.ec2.Image
@@ -314,7 +314,3 @@ capabilities:
   key_content:
     description: Private agent key
     value: { get_attribute: [agent_key, private_key_export] }
-
-  keypair_content:
-    description: AWS Keypair key
-    value: { get_attribute: [vm_keypair, private_key_export] }

@@ -59,6 +59,10 @@ inputs:
           - t2.xlarge
           - t2.2xlarge
 
+  vm_key_name:
+    type: string
+    default: nagios-key-update-1
+
   agent_user:
     description: >
       The username of the agent running on the instance created from the image.
@@ -116,6 +120,18 @@ dsl_definitions:
 
 node_templates:
 
+  vm_keypair:
+    type: cloudify.nodes.aws.ec2.Keypair
+    properties:
+      client_config: *client_config
+      resource_config:
+        KeyName: { get_input: vm_key_name }
+        PublicKeyMaterial: { get_attribute: [agent_key, public_key_export] }
+    relationships:
+      - type: cloudify.relationships.depends_on
+        target: agent_key
+
+
   vm:
     type: cloudify.nodes.aws.ec2.Instances
     properties:
@@ -129,6 +145,7 @@ node_templates:
         InstanceType: { get_input: instance_type }
         kwargs:
           UserData: { get_attribute: [ cloud_init, cloud_config ] }
+          KeyName: { get_input: vm_key_name }
           TagSpecifications:
             - ResourceType: instance
               Tags:
@@ -145,6 +162,8 @@ node_templates:
       target: ip
     - type: cloudify.relationships.depends_on
       target: cloud_init
+    - type: cloudify.relationships.depends_on
+      target: vm_keypair
 
   ami:
     type: cloudify.nodes.aws.ec2.Image
