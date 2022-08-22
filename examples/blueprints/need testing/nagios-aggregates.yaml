@@ -59,6 +59,10 @@ inputs:
           - t2.xlarge
           - t2.2xlarge
 
+  vm_key_name:
+    type: string
+    default: nagios-key-update-3
+
   agent_user:
     description: >
       The username of the agent running on the instance created from the image.
@@ -94,7 +98,6 @@ dsl_definitions:
     aws_secret_access_key: { get_secret: aws_secret_access_key }
     region_name: { get_input: aws_region_name }
 
-
   heal_workflow: &heal
     workflow_id: heal
     parameters:
@@ -117,6 +120,18 @@ dsl_definitions:
 
 node_templates:
 
+  vm_keypair:
+    type: cloudify.nodes.aws.ec2.Keypair
+    properties:
+      client_config: *client_config
+      resource_config:
+        KeyName: { get_input: vm_key_name }
+        PublicKeyMaterial: { get_attribute: [agent_key, public_key_export] }
+    relationships:
+      - type: cloudify.relationships.depends_on
+        target: agent_key
+
+
   vm:
     type: cloudify.nodes.aws.ec2.Instances
     properties:
@@ -130,6 +145,7 @@ node_templates:
         InstanceType: { get_input: instance_type }
         kwargs:
           UserData: { get_attribute: [ cloud_init, cloud_config ] }
+          KeyName: { get_input: vm_key_name }
           TagSpecifications:
             - ResourceType: instance
               Tags:
@@ -146,6 +162,8 @@ node_templates:
       target: ip
     - type: cloudify.relationships.depends_on
       target: cloud_init
+    - type: cloudify.relationships.depends_on
+      target: vm_keypair
 
   ami:
     type: cloudify.nodes.aws.ec2.Image
@@ -223,33 +241,52 @@ node_templates:
       - type: cloudify.relationships.contained_in
         target: vm
 
-  base_update_instance:
+  base_value_instance:
     type: cloudify.nagios.nodes.TargetType
     properties:
-      name: basic_update_instance_type
-      alias: Changing test values
+      name: basic_aggregate_instance_type
+      alias: Checking aggregated values
       snmp_properties:
         # At least on of v2c or v3 snmp properties are needed.
         v3:
-          username: cloudify_monitoring
-          auth_pass: snmpnagiostestauth
-          priv_pass: snmpnagiostestpriv
+          username: { get_input: snmpv3_username }
+          auth_pass: { get_input: snmpv3_auth_password }
+          priv_pass: { get_input: snmpv3_priv_password }
       instance_health_check: do-not-check
     relationships:
       - type: cloudify.nagios.configuration_for_nagios_server
         target: nagios
       - type: cloudify.nagios.target_type_checks
-        target: updatecheck
+        target: aggregatecheck
+      - type: cloudify.nagios.target_type_checks
+        target: aggregateratecheck
 
-  updatecheck:
-    type: cloudify.nagios.nodes.SNMPValueCheck
+  aggregatecheck:
+    type: cloudify.nagios.nodes.SNMPAggregateValueCheck
     properties:
-      check_description: Get test integer
-      snmp_oid: CLOUDIFY-TEST-MIB::cloudifyTestInteger
-      high_critical_threshold: 15
-      action_on_high_threshold: *heal
+      check_description: Get average of test integers
+      snmp_oids: CLOUDIFY-TEST-MIB::cloudifyTestInteger
+      aggregation_type: arithmetic_mean
+      high_critical_threshold: 5
+      action_on_high_threshold: *scale_down
       check_interval: 0.25
       max_check_retries: 0
+      on_unknown: abort
+      high_min_instances: 1
+
+  aggregateratecheck:
+    type: cloudify.nagios.nodes.SNMPAggregateValueCheck
+    properties:
+      check_description: Get average of test counter rates
+      snmp_oids: CLOUDIFY-TEST-MIB::cloudifyTestCounter
+      aggregation_type: sum
+      low_critical_threshold: 0.1
+      action_on_low_threshold: *scale_down
+      check_interval: 0.25
+      max_check_retries: 1
+      on_unknown: ignore
+      low_min_instances: 1
+      rate_check: true
 
   cloudify_mib:
     type: cloudify.nagios.nodes.MIB

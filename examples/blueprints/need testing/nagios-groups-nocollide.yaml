@@ -59,10 +59,6 @@ inputs:
           - t2.xlarge
           - t2.2xlarge
 
-  vm_key_name:
-    type: string
-    default: nagios-key-update-1
-
   agent_user:
     description: >
       The username of the agent running on the instance created from the image.
@@ -76,7 +72,6 @@ inputs:
     type: string
     description: Control parameters for names in resources.
     default: 'example'
-
 
   nagios_web_username:
     default: admin
@@ -111,26 +106,21 @@ dsl_definitions:
       delta: "+1"
       scale_compute: true
 
-  scale_down_workflow: &scale_down
+  scale_up_workflow: &scale_down
     workflow_id: scale
     parameters:
       scalable_entity_name: "{{node}}"
       delta: "-1"
       scale_compute: true
 
+  scale_down_workflow: &specific_scale_down
+    workflow_id: scale
+    parameters:
+      scalable_entity_name: "base_group_host"
+      delta: "-2"
+      scale_compute: true
+
 node_templates:
-
-  vm_keypair:
-    type: cloudify.nodes.aws.ec2.Keypair
-    properties:
-      client_config: *client_config
-      resource_config:
-        KeyName: { get_input: vm_key_name }
-        PublicKeyMaterial: { get_attribute: [agent_key, public_key_export] }
-    relationships:
-      - type: cloudify.relationships.depends_on
-        target: agent_key
-
 
   vm:
     type: cloudify.nodes.aws.ec2.Instances
@@ -145,7 +135,6 @@ node_templates:
         InstanceType: { get_input: instance_type }
         kwargs:
           UserData: { get_attribute: [ cloud_init, cloud_config ] }
-          KeyName: { get_input: vm_key_name }
           TagSpecifications:
             - ResourceType: instance
               Tags:
@@ -162,8 +151,6 @@ node_templates:
       target: ip
     - type: cloudify.relationships.depends_on
       target: cloud_init
-    - type: cloudify.relationships.depends_on
-      target: vm_keypair
 
   ami:
     type: cloudify.nodes.aws.ec2.Image
@@ -241,11 +228,95 @@ node_templates:
       - type: cloudify.relationships.contained_in
         target: vm
 
-  # command:
-  #   type: cloudify.arbitrary_commands.nodes.executor
-  #   relationships:
-  #     - type: cloudify.relationships.contained_in
-  #       target: nagios_host
+  base_group_nocollide_instance:
+    type: cloudify.nagios.nodes.TargetType
+    properties:
+      name: basic_group_nocollide_instance_type
+      alias: Checking grouped values
+      snmp_properties:
+        # At least on of v2c or v3 snmp properties are needed.
+        v3:
+          username: { get_input: snmpv3_username }
+          auth_pass: { get_input: snmpv3_auth_password }
+          priv_pass: { get_input: snmpv3_priv_password }
+      instance_health_check: do-not-check
+    relationships:
+      - type: cloudify.nagios.configuration_for_nagios_server
+        target: nagios
+      - type: cloudify.nagios.target_type_checks
+        target: aggregatevaluecheck
+      - type: cloudify.nagios.target_type_checks
+        target: aggregatecountercheck
+
+  aggregatevaluecheck:
+    type: cloudify.nagios.nodes.SNMPAggregateValueCheck
+    properties:
+      check_description: Get average of test integers
+      snmp_oids: CLOUDIFY-TEST-MIB::cloudifyTestInteger
+      aggregation_type: arithmetic_mean
+      check_interval: 0.25
+      max_check_retries: 0
+      on_unknown: ignore
+
+  checkgroupvalue:
+    type: cloudify.nagios.nodes.CheckGroupType
+    properties:
+      # Note that this type of check cannot take min/max instances
+      name: Test check group value
+      aggregation_type: arithmetic_mean
+      on_unknown: ignore
+      check_interval: 0.25
+    relationships:
+      - type: cloudify.nagios.configuration_for_nagios_server
+        target: nagios
+      - type: cloudify.nagios.group_check
+        target: aggregatevaluecheck
+
+  aggregatecountercheck:
+    type: cloudify.nagios.nodes.SNMPAggregateValueCheck
+    properties:
+      check_description: Get average of test counter rates
+      snmp_oids: CLOUDIFY-TEST-MIB::cloudifyTestCounter
+      aggregation_type: arithmetic_mean
+      check_interval: 0.25
+      max_check_retries: 0
+      on_unknown: ignore
+
+  checkgroupcounter:
+    type: cloudify.nagios.nodes.CheckGroupType
+    properties:
+      # Note that this type of check cannot take min/max instances
+      name: Test check group counter
+      aggregation_type: arithmetic_mean
+      on_unknown: ignore
+      check_interval: 0.25
+    relationships:
+      - type: cloudify.nagios.configuration_for_nagios_server
+        target: nagios
+      - type: cloudify.nagios.group_check
+        target: aggregatecountercheck
+
+  cloudify_mib:
+    type: cloudify.nagios.nodes.MIB
+    properties:
+      name: CLOUDIFY-MIB.mib
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: nagios
+
+  cloudify_test_mib:
+    type: cloudify.nagios.nodes.MIB
+    properties:
+      name: CLOUDIFY-TEST-MIB.mib
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: nagios
+
+#  command:
+#    type: cloudify.arbitrary_commands.nodes.executor
+#    relationships:
+#      - type: cloudify.relationships.contained_in
+#        target: nagios_host
 
 outputs:
   http_endpoint:

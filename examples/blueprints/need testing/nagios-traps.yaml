@@ -12,6 +12,7 @@ imports:
 
 inputs:
 
+
   aws_subnet_id:
     type: string
 
@@ -58,10 +59,6 @@ inputs:
           - t2.large
           - t2.xlarge
           - t2.2xlarge
-
-  vm_key_name:
-    type: string
-    default: nagios-key-update-1
 
   agent_user:
     description: >
@@ -120,18 +117,6 @@ dsl_definitions:
 
 node_templates:
 
-  vm_keypair:
-    type: cloudify.nodes.aws.ec2.Keypair
-    properties:
-      client_config: *client_config
-      resource_config:
-        KeyName: { get_input: vm_key_name }
-        PublicKeyMaterial: { get_attribute: [agent_key, public_key_export] }
-    relationships:
-      - type: cloudify.relationships.depends_on
-        target: agent_key
-
-
   vm:
     type: cloudify.nodes.aws.ec2.Instances
     properties:
@@ -145,7 +130,6 @@ node_templates:
         InstanceType: { get_input: instance_type }
         kwargs:
           UserData: { get_attribute: [ cloud_init, cloud_config ] }
-          KeyName: { get_input: vm_key_name }
           TagSpecifications:
             - ResourceType: instance
               Tags:
@@ -162,8 +146,6 @@ node_templates:
       target: ip
     - type: cloudify.relationships.depends_on
       target: cloud_init
-    - type: cloudify.relationships.depends_on
-      target: vm_keypair
 
   ami:
     type: cloudify.nodes.aws.ec2.Image
@@ -241,11 +223,78 @@ node_templates:
       - type: cloudify.relationships.contained_in
         target: vm
 
-  # command:
-  #   type: cloudify.arbitrary_commands.nodes.executor
-  #   relationships:
-  #     - type: cloudify.relationships.contained_in
-  #       target: nagios_host
+  base_trap_instance:
+    type: cloudify.nagios.nodes.TargetType
+    properties:
+      name: basic_trap_instance_type
+      alias: Just pinging to check instance health
+      snmp_properties:
+        # At least on of v2c or v3 snmp properties are needed.
+        v3:
+          username: { get_input: snmpv3_username }
+          auth_pass: { get_input: snmpv3_auth_password }
+          priv_pass: { get_input: snmpv3_priv_password }
+      instance_health_check: do-not-check
+    relationships:
+      - type: cloudify.nagios.configuration_for_nagios_server
+        target: nagios
+      - type: cloudify.nagios.target_type_checks
+        target: basic_trap
+      - type: cloudify.nagios.target_type_checks
+        target: verbose_trap
+
+  basic_trap:
+    type: cloudify.nagios.nodes.SNMPTrapReaction
+    properties:
+      trap_oid: CLOUDIFY-TEST-MIB::cloudifyTestBasicNotify
+      reaction: *scale_down
+      # Note: max_instances can also be set
+      min_instances: 1
+    relationships:
+      - type: cloudify.relationships.depends_on
+        target: cloudify_mib
+      - type: cloudify.relationships.depends_on
+        target: cloudify_test_mib
+      - type: cloudify.relationships.contained_in
+        target: nagios
+
+  verbose_trap:
+    type: cloudify.nagios.nodes.SNMPTrapReaction
+    properties:
+      trap_oid: CLOUDIFY-TEST-MIB::cloudifyTestVerboseNotify
+      instance_oid: .1.3.6.1.4.1.52312.0.1.2
+      instance_finder: "^\"The address is (?P<address>[0-9.]+)\"$"
+      oid_for_message: .1.3.6.1.4.1.52312.0.1.1
+      reaction: *heal
+    relationships:
+      - type: cloudify.relationships.depends_on
+        target: cloudify_mib
+      - type: cloudify.relationships.depends_on
+        target: cloudify_test_mib
+      - type: cloudify.relationships.contained_in
+        target: nagios
+
+  cloudify_mib:
+    type: cloudify.nagios.nodes.MIB
+    properties:
+      name: CLOUDIFY-MIB.mib
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: nagios
+
+  cloudify_test_mib:
+    type: cloudify.nagios.nodes.MIB
+    properties:
+      name: CLOUDIFY-TEST-MIB.mib
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: nagios
+
+#  command:
+#    type: cloudify.arbitrary_commands.nodes.executor
+#    relationships:
+#      - type: cloudify.relationships.contained_in
+#        target: nagios_host
 
 outputs:
   http_endpoint:

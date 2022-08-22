@@ -61,7 +61,7 @@ inputs:
 
   vm_key_name:
     type: string
-    default: nagios-key-update-1
+    default: nagios-key-update-3
 
   agent_user:
     description: >
@@ -130,7 +130,6 @@ node_templates:
     relationships:
       - type: cloudify.relationships.depends_on
         target: agent_key
-
 
   vm:
     type: cloudify.nodes.aws.ec2.Instances
@@ -241,6 +240,35 @@ node_templates:
       - type: cloudify.relationships.contained_in
         target: vm
 
+  base_instance:
+    type: cloudify.nagios.nodes.TargetType
+    properties:
+      name: base_instance_type
+      alias: Just pinging to check instance health
+      snmp_properties:
+        # At least on of v2c or v3 snmp properties are needed.
+        v3:
+          username: { get_input: snmpv3_username }
+          auth_pass: { get_input: snmpv3_auth_password }
+          priv_pass: { get_input: snmpv3_priv_password }
+      # If the instance becomes unhealthy, we will run the
+      # heal workflow on it.
+      # It is unhealthy if it does not respond to pings for some time.
+      action_on_instance_failure: *heal
+      check_interval: 0.25  # This should result in it taking about 15 seconds to trigger a heal
+      max_check_retries: 0
+    relationships:
+      - type: cloudify.nagios.configuration_for_nagios_server
+        target: nagios
+      - type: cloudify.nagios.target_type_checks
+        target: basecheck
+
+  basecheck:
+    type: cloudify.nagios.nodes.SNMPValueCheck
+    properties:
+      check_description: 1 minute load average
+      snmp_oid: UCD-SNMP-MIB::laLoad.1
+
   # command:
   #   type: cloudify.arbitrary_commands.nodes.executor
   #   relationships:
@@ -254,9 +282,6 @@ outputs:
   internal_address:
     description: Internal nagios address
     value: { get_attribute: [vm, private_ip_address] }
-  external_address:
-    description: External nagios address
-    value: { get_attribute: [ip, aws_resource_id] }
   nagios_ssl_certificate:
     description: SSL certificate for accessing nagios and nagiosrest
     value: { get_attribute: [nagios, ssl_certificate] }

@@ -1,8 +1,5 @@
 tosca_definitions_version: cloudify_dsl_1_3
 
-description: >
-  Nagios server with configuration for the basic examples.
-
 imports:
   - https://cloudify.co/spec/cloudify/6.3.0/types.yaml
   - plugin:cloudify-aws-plugin
@@ -59,10 +56,6 @@ inputs:
           - t2.xlarge
           - t2.2xlarge
 
-  vm_key_name:
-    type: string
-    default: nagios-key-update-1
-
   agent_user:
     description: >
       The username of the agent running on the instance created from the image.
@@ -76,7 +69,6 @@ inputs:
     type: string
     description: Control parameters for names in resources.
     default: 'example'
-
 
   nagios_web_username:
     default: admin
@@ -92,45 +84,12 @@ inputs:
     default: snmpnagiostestpriv
 
 dsl_definitions:
-
   client_config: &client_config
     aws_access_key_id: { get_secret: aws_access_key_id }
     aws_secret_access_key: { get_secret: aws_secret_access_key }
     region_name: { get_input: aws_region_name }
 
-  heal_workflow: &heal
-    workflow_id: heal
-    parameters:
-      node_instance_id: "{{instance}}"
-      diagnose_value: "Monitoring health check failure."
-
-  scale_up_workflow: &scale_up
-    workflow_id: scale
-    parameters:
-      scalable_entity_name: "{{node}}"
-      delta: "+1"
-      scale_compute: true
-
-  scale_down_workflow: &scale_down
-    workflow_id: scale
-    parameters:
-      scalable_entity_name: "{{node}}"
-      delta: "-1"
-      scale_compute: true
-
 node_templates:
-
-  vm_keypair:
-    type: cloudify.nodes.aws.ec2.Keypair
-    properties:
-      client_config: *client_config
-      resource_config:
-        KeyName: { get_input: vm_key_name }
-        PublicKeyMaterial: { get_attribute: [agent_key, public_key_export] }
-    relationships:
-      - type: cloudify.relationships.depends_on
-        target: agent_key
-
 
   vm:
     type: cloudify.nodes.aws.ec2.Instances
@@ -145,7 +104,6 @@ node_templates:
         InstanceType: { get_input: instance_type }
         kwargs:
           UserData: { get_attribute: [ cloud_init, cloud_config ] }
-          KeyName: { get_input: vm_key_name }
           TagSpecifications:
             - ResourceType: instance
               Tags:
@@ -162,8 +120,6 @@ node_templates:
       target: ip
     - type: cloudify.relationships.depends_on
       target: cloud_init
-    - type: cloudify.relationships.depends_on
-      target: vm_keypair
 
   ami:
     type: cloudify.nodes.aws.ec2.Image
@@ -237,15 +193,17 @@ node_templates:
         cloudify_manager_password: { get_secret: cloudify_manager_password }
         trap_community: { get_input: trap_community }
         component_log_level: DEBUG
+        ssl_certificate: example.crt
+        ssl_key: example.key
     relationships:
       - type: cloudify.relationships.contained_in
         target: vm
 
-  # command:
-  #   type: cloudify.arbitrary_commands.nodes.executor
-  #   relationships:
-  #     - type: cloudify.relationships.contained_in
-  #       target: nagios_host
+#  command:
+#    type: cloudify.arbitrary_commands.nodes.executor
+#    relationships:
+#      - type: cloudify.relationships.contained_in
+#        target: nagios_host
 
 outputs:
   http_endpoint:
