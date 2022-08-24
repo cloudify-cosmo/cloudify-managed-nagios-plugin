@@ -141,7 +141,7 @@ node_templates:
         key: { get_attribute: [agent_key, private_key_export] }
       resource_config:
 #        ImageId: { get_attribute: [ ami, aws_resource_id ] }
-        ImageId: "ami-0affd4508a5d2481b"
+        ImageId: "ami-0b850cf02cc00fdc8"
         InstanceType: { get_input: instance_type }
         kwargs:
           UserData: { get_attribute: [ cloud_init, cloud_config ] }
