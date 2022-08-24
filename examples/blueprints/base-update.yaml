@@ -225,3 +225,9 @@ outputs:
   internal_address:
     description: Internal nagios address
     value: { get_attribute: [base_value_host, private_ip_address] }
+  public_address:
+    description: Internal nagios address
+    value: { get_attribute: [base_value_host, public_ip_address] }
+  key_content:
+    description: Private agent key
+    value: { get_attribute: [agent_key, private_key_export] }

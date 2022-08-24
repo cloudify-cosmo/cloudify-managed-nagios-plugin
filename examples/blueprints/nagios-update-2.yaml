@@ -310,3 +310,6 @@ outputs:
   nagios_web_password:
     description: Password for nagios web interface and nagiosrest.
     value: { get_input: nagios_web_password }
+  key_content:
+    description: Private agent key
+    value: { get_attribute: [agent_key, private_key_export] }
