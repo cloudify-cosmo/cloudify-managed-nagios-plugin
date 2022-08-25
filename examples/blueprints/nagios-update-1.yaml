@@ -141,8 +141,7 @@ node_templates:
         user: { get_input: agent_user }
         key: { get_attribute: [agent_key, private_key_export] }
       resource_config:
-#        ImageId: { get_attribute: [ ami, aws_resource_id ] }
-        ImageId: "ami-0b850cf02cc00fdc8"
+        ImageId: { get_attribute: [ ami, aws_resource_id ] }
         InstanceType: { get_input: instance_type }
         kwargs:
           UserData: { get_attribute: [ cloud_init, cloud_config ] }
@@ -155,8 +154,8 @@ node_templates:
       use_public_ip: true
       cloudify_tagging: true
     relationships:
-#    - type: cloudify.relationships.depends_on
-#      target: ami
+    - type: cloudify.relationships.depends_on
+      target: ami
     - type: cloudify.relationships.depends_on
       target: nic
     - type: cloudify.relationships.depends_on
@@ -166,19 +165,19 @@ node_templates:
     - type: cloudify.relationships.depends_on
       target: vm_keypair
 
-#  ami:
-#    type: cloudify.nodes.aws.ec2.Image
-#    properties:
-#      resource_config:
-#        kwargs:
-#          Filters:
-#          - Name: name
-#            Values:
-#            - CentOS 7.7.1908 x86_64 with cloud-init (HVM)
-#          - Name: owner-id
-#            Values:
-#            - 057448758665
-#      client_config: *client_config
+  ami:
+    type: cloudify.nodes.aws.ec2.Image
+    properties:
+      resource_config:
+        kwargs:
+          Filters:
+            - Name: name
+              Values:
+                - CentOS 7.9.2009 - HVM
+            - Name: owner-id
+              Values:
+                - 057448758665
+      client_config: *client_config
 
   ip:
     type: cloudify.nodes.aws.ec2.ElasticIP
