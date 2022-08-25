@@ -104,6 +104,7 @@ dsl_definitions:
     parameters:
       node_instance_id: "{{instance}}"
       diagnose_value: "Monitoring health check failure."
+      check_status: false
 
   scale_up_workflow: &scale_up
     workflow_id: scale
