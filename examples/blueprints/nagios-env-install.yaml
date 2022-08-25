@@ -204,6 +204,11 @@ node_templates:
           ToPort: 65535
           IpRanges:
           - CidrIp: 10.10.4.0/24
+        - IpProtocol: udp
+            FromPort: 1
+            ToPort: 65535
+            IpRanges:
+              - CidrIp: 10.10.4.0/24
     relationships:
     - type: cloudify.relationships.contained_in
       target: security_group
