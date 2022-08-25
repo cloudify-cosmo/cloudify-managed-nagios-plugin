@@ -205,10 +205,10 @@ node_templates:
           IpRanges:
           - CidrIp: 10.10.4.0/24
         - IpProtocol: udp
-            FromPort: 1
-            ToPort: 65535
-            IpRanges:
-              - CidrIp: 10.10.4.0/24
+          FromPort: 1
+          ToPort: 65535
+          IpRanges:
+          - CidrIp: 10.10.4.0/24
     relationships:
     - type: cloudify.relationships.contained_in
       target: security_group
@@ -319,3 +319,12 @@ capabilities:
   key_content:
     description: Private agent key
     value: { get_attribute: [agent_key, private_key_export] }
+
+  subnet:
+    description: The external endpoint of the application.
+    value: { get_attribute: [ subnet, aws_resource_id ] }
+
+  security_group:
+    description: The external endpoint of the application.
+    value: { get_attribute: [ security_group, aws_resource_id ] }
+
