@@ -13,7 +13,6 @@ helper_scripts/remove_nagios
 cfy blueprints delete nagios
 cfy blueprints delete nagiosupdate-2
 
-
 #### 1 Adding a new target type example
 # WARNING: Both update examples are designed to be run one after the other
 # This demonstrates adding a new target type to nagios
@@ -23,14 +22,17 @@ cfy blueprints upload -b nagiosupdate-2 blueprints/nagios-update-2.yaml
 # And now we'll add the target type by updating the deployment
 # As we're only adding a target type, rather than changing anything associated with an
 # existing one, we don't need to do anything else with the nagios deployment
-cfy deployments update -b nagiosupdate-2 nagios
+cfy deployments update -b nagiosupdate-2 nagios --skip-drift-check
 # Now we can deploy a monitored instance
-cfy install -b baseupdate -d baseupdate -i snmptest-blueprint-inputs.yaml blueprints/baseupdate.yaml
+####  v0: cfy install -b baseupdate -d baseupdate -i snmptest-blueprint-inputs.yaml blueprints/baseupdate.yaml
+cfy install -b baseupdate -d baseupdate -i nagios-blueprint-inputs.yaml blueprints/base-update.yaml
 # And we'll set the monitored value
-ssh -A -o StrictHostKeyChecking=no centos@$(cfy deployment outputs nagios | grep -A1 "External " | grep Value | awk '{ print $2 }') ssh -o StrictHostKeyChecking=no centos@$(cfy node-instances get $(cfy node-instances list | grep baseupdate | head -n1 | awk '{ print $2 }') | grep ip: | awk '{ print $2 }') echo 10 '">"' /tmp/cloudifytestinteger
+touch cert.pem
+cfy deployment outputs baseupdate | sed -ne '/-----BEGIN RSA/,$ p' | sed 's/.*Value: //' | awk '{ print }' >> cert.pem
+chmod 600 cert.pem
+ssh -o StrictHostKeyChecking=no centos@$(cfy deployment outputs baseupdate | grep -A2 "public_address" | grep Value | awk '{ print $2 }') -i cert.pem echo 10 '>' /tmp/cloudifytestinteger
 # But there will be no reaction because the threshold is incorrect
 # You should now proceed to the second example to update the threshold
-
 
 #### 2 Updating existing check thresholds
 # WARNING: You MUST run the previous example before this one.
@@ -41,7 +43,7 @@ cfy blueprints upload -b nagiosupdate-3 blueprints/nagios-update-3.yaml
 # Next we need to update the deployment. Because the target type aggregates checks, the
 # deployment update will not automatically reinstall the specific target type, so we must
 # tell it to do this:
-cfy deployments update nagios -b nagiosupdate-3 -r $(cfy node-instances list | grep base_update_instance | awk '{ print $2 }')
+cfy deployments update nagios -b nagiosupdate-3 --force-reinstall -r $(cfy node-instances list | grep base_update_instance | awk '{ print $2 }') --skip-drift-check
 # After the target type is updated, it will have lost the associated targets so we must reconcile
 # (see BASE_EXAMPLES for a reconcile example):
 cfy executions start -d nagios -p '{"node_ids": ["nagios"],"operation": "cloudify.interfaces.reconcile.monitoring","allow_kwargs_override": true}' execute_operation
@@ -51,3 +53,30 @@ for i in {1..60}; do if ! cfy executions list | grep heal | grep started | grep 
 cfy uninstall baseupdate
 
 # Don't forget to run the nagios cleanup before you try another example
+
+
+all steps:
+
+helper_scripts/deploy_nagios update-1
+
+cfy blueprints upload -b nagiosupdate-2 blueprints/nagios-update-2.yaml
+
+cfy deployments update -b nagiosupdate-2 nagios --skip-drift-check
+
+cfy install -b baseupdate -d baseupdate -i nagios-blueprint-inputs.yaml blueprints/base-update.yaml
+
+touch cert.pem
+
+cfy deployment outputs baseupdate | sed -ne '/-----BEGIN RSA/,$ p' | sed 's/.*Value: //' | awk '{ print }' >> cert.pem
+
+chmod 600 cert.pem
+
+ssh -o StrictHostKeyChecking=no centos@$(cfy deployment outputs baseupdate | grep -A2 "public_address" | grep Value | awk '{ print $2 }') -i cert.pem echo 10 '>' /tmp/cloudifytestinteger
+
+cfy blueprints upload -b nagiosupdate-3 blueprints/nagios-update-3.yaml
+
+cfy deployments update nagios -b nagiosupdate-3 --force-reinstall -r $(cfy node-instances list | grep base_update_instance | awk '{ print $2 }') --skip-drift-check
+
+cfy executions start -d nagios -p '{"node_ids": ["nagios"],"operation": "cloudify.interfaces.reconcile.monitoring","allow_kwargs_override": true}' execute_operation
+
+for i in {1..60}; do if ! cfy executions list | grep heal | grep started | grep baseupdate ; then sleep 2; else break; fi; done; cfy events list --tail -e $(cfy executions list | grep heal | grep started | awk '{ print $2 }')
