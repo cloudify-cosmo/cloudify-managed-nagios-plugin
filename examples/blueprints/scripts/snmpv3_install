@@ -3,7 +3,9 @@
 ctx download-resource scripts/cloudifytestpasspersist /tmp/cloudifytestpasspersist
 sudo chown root. /tmp/cloudifytestpasspersist
 sudo chmod 550 /tmp/cloudifytestpasspersist
+
 sudo setenforce 0
+sudo sed -i 's/SELINUX=enforcing/SELINUX=permissive/' /etc/selinux/config
 
 sudo yum install -y net-snmp-utils net-snmp
 sudo systemctl stop snmpd
