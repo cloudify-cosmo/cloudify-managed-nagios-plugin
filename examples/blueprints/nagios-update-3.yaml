@@ -244,7 +244,7 @@ node_templates:
     type: cloudify.nagios.nodes.TargetType
     properties:
       name: basic_update_instance_type
-      alias: Changing test values
+      alias: update test values
       snmp_properties:
         # At least on of v2c or v3 snmp properties are needed.
         v3:
