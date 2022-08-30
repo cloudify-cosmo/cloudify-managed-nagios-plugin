@@ -1,7 +1,7 @@
-tosca_definitions_version: cloudify_dsl_1_3
+tosca_definitions_version: cloudify_dsl_1_4
 
 imports:
-  - https://cloudify.co/spec/cloudify/6.3.0/types.yaml
+  - https://cloudify.co/spec/cloudify/6.4.0/types.yaml
   - plugin:cloudify-aws-plugin
   - plugin:cloudify-utilities-plugin?version= >=1.22.1
   - plugin:cloudify-managed-nagios-plugin
@@ -226,3 +226,9 @@ outputs:
   internal_address:
     description: Internal nagios address
     value: { get_attribute: [base_value_host, private_ip_address] }
+  public_address:
+    description: Internal nagios address
+    value: { get_attribute: [base_value_host, public_ip_address] }
+  key_content:
+    description: Private agent key
+    value: { get_attribute: [agent_key, private_key_export] }
