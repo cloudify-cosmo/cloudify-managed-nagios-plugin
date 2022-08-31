@@ -122,6 +122,7 @@ node_templates:
         install_method: remote
         port: 22
         key: { get_secret: agent_key_private }
+      client_config: *client_config
       resource_config:
         ImageId: { get_attribute: [ ami, aws_resource_id ] }
         InstanceType: { get_input: instance_type }
