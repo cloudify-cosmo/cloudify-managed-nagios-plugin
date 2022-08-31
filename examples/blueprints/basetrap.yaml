@@ -136,8 +136,8 @@ node_templates:
         use_public_ip: true
         cloudify_tagging: true
         nagiosrest_monitoring:
-          target_type: basic_trap_instance_type
           address: { get_secret: nagiosrest_address }
+          target_type: basic_trap_instance_type
           certificate: { get_secret: nagiosrest_certificate }
           username: { get_secret: nagiosrest_user }
           password: { get_secret: nagiosrest_pass }
@@ -225,10 +225,10 @@ node_templates:
 outputs:
   internal_address:
     description: Internal nagios address
-    value: { get_attribute: [base_value_host, private_ip_address] }
+    value: { get_attribute: [base_trap_host, private_ip_address] }
   public_address:
     description: Internal nagios address
-    value: { get_attribute: [base_value_host, public_ip_address] }
+    value: { get_attribute: [base_trap_host, public_ip_address] }
   key_content:
     description: Private agent key
     value: { get_attribute: [agent_key, private_key_export] }
