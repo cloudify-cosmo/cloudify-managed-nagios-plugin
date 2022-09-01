@@ -42,7 +42,7 @@ cloudifyTestVerboseNotify NOTIFICATION-TYPE
   DESCRIPTION
     "Test verbose notification with extra details included."
   ::= { cloudifyTestNotifications 2 }
-cloudifyTestOtherNotify NOTIFICATION-TYPE
+cloudifyTestOtherBasicNotify NOTIFICATION-TYPE
   STATUS current
   DESCRIPTION
     "Test basic notification with no extra details."
