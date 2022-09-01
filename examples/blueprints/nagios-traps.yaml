@@ -276,6 +276,20 @@ node_templates:
       - type: cloudify.relationships.contained_in
         target: nagios
 
+  scale_up_trap:
+    type: cloudify.nagios.nodes.SNMPTrapReaction
+    properties:
+      trap_oid: CLOUDIFY-TEST-MIB::cloudifyTestOtherBasicNotify
+      reaction: *scale_up
+      max_instances: 2
+    relationships:
+      - type: cloudify.relationships.depends_on
+        target: cloudify_mib
+      - type: cloudify.relationships.depends_on
+        target: cloudify_test_mib
+      - type: cloudify.relationships.contained_in
+        target: nagios
+
   verbose_trap:
     type: cloudify.nagios.nodes.SNMPTrapReaction
     properties:
