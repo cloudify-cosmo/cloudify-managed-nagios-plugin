@@ -222,6 +222,22 @@ node_templates:
   #   relationships:
   #     - type: cloudify.relationships.contained_in
   #       target: base_value_host
+groups:
+  base_trap_host:
+    members:
+      - base_trap_host
+      - nic
+      - ip
+
+
+policies:
+  gilan_scaling_policy:
+    type: cloudify.policies.scaling
+    properties:
+      default_instances: 1
+      min_instances: 1
+      max_instances: 2
+    targets: [base_trap_host]
 
 outputs:
   internal_address:
