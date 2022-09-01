@@ -260,6 +260,8 @@ node_templates:
         target: basic_trap
       - type: cloudify.nagios.target_type_checks
         target: verbose_trap
+      - type: cloudify.nagios.target_type_checks
+        target: scale_up_trap
 
   basic_trap:
     type: cloudify.nagios.nodes.SNMPTrapReaction
