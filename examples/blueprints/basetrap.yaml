@@ -223,7 +223,7 @@ node_templates:
   #     - type: cloudify.relationships.contained_in
   #       target: base_value_host
 groups:
-  base_trap_host:
+  base_trap_host_group:
     members:
       - base_trap_host
       - nic
@@ -237,7 +237,7 @@ policies:
       default_instances: 1
       min_instances: 1
       max_instances: 2
-    targets: [base_trap_host]
+    targets: [base_trap_host_group]
 
 outputs:
   internal_address:
