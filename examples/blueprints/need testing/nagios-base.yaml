@@ -1,10 +1,10 @@
-tosca_definitions_version: cloudify_dsl_1_3
+tosca_definitions_version: cloudify_dsl_1_4
 
 description: >
   Nagios server with configuration for the basic examples.
 
 imports:
-  - https://cloudify.co/spec/cloudify/6.3.0/types.yaml
+  - https://cloudify.co/spec/cloudify/6.4.0/types.yaml
   - plugin:cloudify-aws-plugin
   - plugin:cloudify-utilities-plugin?version= >=1.22.1
   - plugin:cloudify-managed-nagios-plugin
@@ -103,6 +103,7 @@ dsl_definitions:
     parameters:
       node_instance_id: "{{instance}}"
       diagnose_value: "Monitoring health check failure."
+      check_status: false
 
   scale_up_workflow: &scale_up
     workflow_id: scale
