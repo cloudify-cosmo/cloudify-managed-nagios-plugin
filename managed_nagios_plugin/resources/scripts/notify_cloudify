@@ -72,14 +72,14 @@ def construct_lockfile_path(path_template, details):
     lockfile_path = path_template.format(details)
 
     # Notify the user
-    if len(lockfile_path) > 256:
+    if len(lockfile_path) > 255:
         logger.debug(
-            'The requested filename: {} exceeds the 256 char limit! Trimming.'
+            'The requested filename: {} exceeds the 255 char limit! Trimming.'
         )
 
     # The string slicing here prevents the file
     # from exceeding the filename length limit.
-    return lockfile_path[:256]
+    return lockfile_path[:255]
 
 
 def acquire_lock(lockfile_path):
