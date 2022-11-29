@@ -67,9 +67,9 @@ class LockInUse(Exception):
 
 
 # Needed to prevent the `File name too long` I/O error
-def construct_lockfile_path(path_template, details):
+def construct_lockfile_path(path_template, **kwargs):
 
-    lockfile_path = path_template.format(details)
+    lockfile_path = path_template.format(**kwargs)
 
     # Notify the user
     if len(lockfile_path) > 255:
