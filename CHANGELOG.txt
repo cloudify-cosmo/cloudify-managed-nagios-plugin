@@ -1,4 +1,4 @@
-1.0.14 - Prevent names longer than 255.
+1.0.14 - Prevent the File name too long IOError.
 1.0.13 - update setup.py to work witj cloudify 5.2.
 1.0.12 - Increase timeout for httpd ProxyPass to 5 minutes.
 1.0.11 - Increase timeout for nagoisrest service to 5 minutes.
