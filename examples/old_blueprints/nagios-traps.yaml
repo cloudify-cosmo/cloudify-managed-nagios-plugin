@@ -1,0 +1,195 @@
+tosca_definitions_version: cloudify_dsl_1_3
+
+description: >
+  Nagios server with configuration for the basic examples.
+
+imports:
+  - http://www.getcloudify.org/spec/cloudify/4.3.2/types.yaml
+  - http://www.getcloudify.org/spec/openstack-plugin/2.0.1/plugin.yaml
+  - plugin:cloudify-managed-nagios-plugin
+  - plugin:arbitrary-command-plugin
+
+inputs:
+  floating_network_id: {}
+  management_network_name: {}
+  key_name: {}
+  image: {}
+  flavor: {}
+  agent_user:
+    default: centos
+  nagios_web_username:
+    default: admin
+  nagios_web_password:
+    default: securepassword
+  trap_community:
+    default: testcommunity
+  snmpv3_username:
+    default: cloudify_monitoring
+  snmpv3_auth_password:
+    default: snmpnagiostestauth
+  snmpv3_priv_password:
+    default: snmpnagiostestpriv
+
+dsl_definitions:
+  openstack_config: &openstack_config
+    username: { get_secret: keystone_username }
+    password: { get_secret: keystone_password }
+    tenant_name: { get_secret: keystone_tenant_name }
+    auth_url: { get_secret: keystone_url }
+    region: { get_secret: region }
+
+  heal_workflow: &heal
+    workflow_id: heal
+    parameters:
+      node_instance_id: "{{instance}}"
+      diagnose_value: "Monitoring health check failure."
+
+  scale_up_workflow: &scale_up
+    workflow_id: scale
+    parameters:
+      scalable_entity_name: "{{node}}"
+      delta: "+1"
+      scale_compute: true
+
+  scale_down_workflow: &scale_down
+    workflow_id: scale
+    parameters:
+      scalable_entity_name: "{{node}}"
+      delta: "-1"
+      scale_compute: true
+
+node_templates:
+  nagios_host:
+    type: cloudify.openstack.nodes.Server
+    properties:
+      agent_config:
+        user: { get_input: agent_user }
+        install_method: remote
+        port: 22
+        key: { get_secret: agent_key_private }
+      server:
+        key_name: ''
+        image: { get_input: image }
+        flavor: { get_input: flavor }
+        key_name: { get_input: key_name }
+      openstack_config: *openstack_config
+      management_network_name: { get_input: management_network_name }
+    relationships:
+      - type: cloudify.openstack.server_connected_to_floating_ip
+        target: virtual_ip
+
+
+  virtual_ip:
+    type: cloudify.openstack.nodes.FloatingIP
+    properties:
+      floatingip:
+        floating_network_id: { get_input: floating_network_id }
+      openstack_config: *openstack_config
+
+
+  nagios:
+    type: cloudify.nagios.nodes.Nagios
+    properties:
+        nagios_web_username: { get_input: nagios_web_username }
+        nagios_web_password: { get_input: nagios_web_password }
+        cloudify_manager_username: { get_secret: cloudify_manager_username }
+        cloudify_manager_password: { get_secret: cloudify_manager_password }
+        trap_community: { get_input: trap_community }
+        component_log_level: DEBUG
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: nagios_host
+
+  base_trap_instance:
+    type: cloudify.nagios.nodes.TargetType
+    properties:
+      name: basic_trap_instance_type
+      alias: Just pinging to check instance health
+      snmp_properties:
+        # At least on of v2c or v3 snmp properties are needed.
+        v3:
+          username: { get_input: snmpv3_username }
+          auth_pass: { get_input: snmpv3_auth_password }
+          priv_pass: { get_input: snmpv3_priv_password }
+      instance_health_check: do-not-check
+    relationships:
+      - type: cloudify.nagios.configuration_for_nagios_server
+        target: nagios
+      - type: cloudify.nagios.target_type_checks
+        target: basic_trap
+      - type: cloudify.nagios.target_type_checks
+        target: verbose_trap
+
+  basic_trap:
+    type: cloudify.nagios.nodes.SNMPTrapReaction
+    properties:
+      trap_oid: CLOUDIFY-TEST-MIB::cloudifyTestBasicNotify
+      reaction: *scale_down
+      # Note: max_instances can also be set
+      min_instances: 1
+    relationships:
+      - type: cloudify.relationships.depends_on
+        target: cloudify_mib
+      - type: cloudify.relationships.depends_on
+        target: cloudify_test_mib
+      - type: cloudify.relationships.contained_in
+        target: nagios
+
+  verbose_trap:
+    type: cloudify.nagios.nodes.SNMPTrapReaction
+    properties:
+      trap_oid: CLOUDIFY-TEST-MIB::cloudifyTestVerboseNotify
+      instance_oid: .1.3.6.1.4.1.52312.0.1.2
+      instance_finder: "^\"The address is (?P<address>[0-9.]+)\"$"
+      oid_for_message: .1.3.6.1.4.1.52312.0.1.1
+      reaction: *heal
+    relationships:
+      - type: cloudify.relationships.depends_on
+        target: cloudify_mib
+      - type: cloudify.relationships.depends_on
+        target: cloudify_test_mib
+      - type: cloudify.relationships.contained_in
+        target: nagios
+
+  cloudify_mib:
+    type: cloudify.nagios.nodes.MIB
+    properties:
+      name: CLOUDIFY-MIB.mib
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: nagios
+
+  cloudify_test_mib:
+    type: cloudify.nagios.nodes.MIB
+    properties:
+      name: CLOUDIFY-TEST-MIB.mib
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: nagios
+
+  command:
+    type: cloudify.arbitrary_commands.nodes.executor
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: nagios_host
+
+outputs:
+  http_endpoint:
+    description: Nagios URL
+    value: { concat: ['https://', { get_attribute: [virtual_ip, floating_ip_address] },
+                      '/nagios' ] }
+  internal_address:
+    description: Internal nagios address
+    value: { get_attribute: [nagios_host, ip] }
+  external_address:
+    description: External nagios address
+    value: { get_attribute: [virtual_ip, floating_ip_address] }
+  nagios_ssl_certificate:
+    description: SSL certificate for accessing nagios and nagiosrest
+    value: { get_attribute: [nagios, ssl_certificate] }
+  nagios_web_username:
+    description: Username for nagios web interface and nagiosrest.
+    value: { get_input: nagios_web_username }
+  nagios_web_password:
+    description: Password for nagios web interface and nagiosrest.
+    value: { get_input: nagios_web_password }

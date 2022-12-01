@@ -1,11 +1,13 @@
 tosca_definitions_version: cloudify_dsl_1_4
 
+description: >
+  Nagios server with configuration for the basic examples.
+
 imports:
   - https://cloudify.co/spec/cloudify/6.4.0/types.yaml
   - plugin:cloudify-aws-plugin
   - plugin:cloudify-utilities-plugin?version= >=1.22.1
   - plugin:cloudify-managed-nagios-plugin
-  - plugin:cloudify-nagiosrest-plugin
   # - plugin:arbitrary-command-plugin
 
 inputs:
@@ -59,7 +61,7 @@ inputs:
 
   vm_key_name:
     type: string
-    default: nagios-key-base-update
+    default: nagios-key-update-3
 
   agent_user:
     description: >
@@ -76,6 +78,18 @@ inputs:
     default: 'example'
 
 
+  nagios_web_username:
+    default: admin
+  nagios_web_password:
+    default: securepassword
+  trap_community:
+    default: testcommunity
+  snmpv3_username:
+    default: cloudify_monitoring
+  snmpv3_auth_password:
+    default: snmpnagiostestauth
+  snmpv3_priv_password:
+    default: snmpnagiostestpriv
 
 dsl_definitions:
 
@@ -84,19 +98,26 @@ dsl_definitions:
     aws_secret_access_key: { get_secret: aws_secret_access_key }
     region_name: { get_input: aws_region_name }
 
-node_types:
-  monitoredvm:
-    derived_from: cloudify.nodes.aws.ec2.Instances
-    properties:
-      nagiosrest_monitoring:
-        type: cloudify.datatypes.nagiosrest.Properties
-    interfaces:
-      cloudify.interfaces.monitoring_agent:
-        install: scripts/snmpv3_install
-      cloudify.interfaces.monitoring:
-        start: nagiosrest.nagiosrest_plugin.tasks.add_monitoring
-        stop: nagiosrest.nagiosrest_plugin.tasks.remove_monitoring
+  heal_workflow: &heal
+    workflow_id: heal
+    parameters:
+      node_instance_id: "{{instance}}"
+      diagnose_value: "Monitoring health check failure."
+      check_status: false
 
+  scale_up_workflow: &scale_up
+    workflow_id: scale
+    parameters:
+      scalable_entity_name: "{{node}}"
+      delta: "+1"
+      scale_compute: true
+
+  scale_down_workflow: &scale_down
+    workflow_id: scale
+    parameters:
+      scalable_entity_name: "{{node}}"
+      delta: "-1"
+      scale_compute: true
 
 node_templates:
 
@@ -111,18 +132,14 @@ node_templates:
       - type: cloudify.relationships.depends_on
         target: agent_key
 
-
-  base_trap_host:
-    type: monitoredvm
-    instances:
-      deploy: 1
+  vm:
+    type: cloudify.nodes.aws.ec2.Instances
     properties:
-      agent_config:
-        user: { get_input: agent_user }
-        install_method: remote
-        port: 22
-        key: { get_secret: agent_key_private }
       client_config: *client_config
+      agent_config:
+        install_method: remote
+        user: { get_input: agent_user }
+        key: { get_attribute: [agent_key, private_key_export] }
       resource_config:
         ImageId: { get_attribute: [ ami, aws_resource_id ] }
         InstanceType: { get_input: instance_type }
@@ -136,23 +153,17 @@ node_templates:
                   Value: { get_input: env_name }
       use_public_ip: true
       cloudify_tagging: true
-      nagiosrest_monitoring:
-        target_type: basic_trap_instance_type
-        address: { get_secret: nagiosrest_address }
-        certificate: { get_secret: nagiosrest_certificate }
-        username: { get_secret: nagiosrest_user }
-        password: { get_secret: nagiosrest_pass }
     relationships:
-      - type: cloudify.relationships.depends_on
-        target: ami
-      - type: cloudify.relationships.depends_on
-        target: nic
-      - type: cloudify.relationships.depends_on
-        target: ip
-      - type: cloudify.relationships.depends_on
-        target: cloud_init
-      - type: cloudify.relationships.depends_on
-        target: vm_keypair
+    - type: cloudify.relationships.depends_on
+      target: ami
+    - type: cloudify.relationships.depends_on
+      target: nic
+    - type: cloudify.relationships.depends_on
+      target: ip
+    - type: cloudify.relationships.depends_on
+      target: cloud_init
+    - type: cloudify.relationships.depends_on
+      target: vm_keypair
 
   ami:
     type: cloudify.nodes.aws.ec2.Image
@@ -162,7 +173,7 @@ node_templates:
           Filters:
           - Name: name
             Values:
-            - CentOS 7.9.2009 - HVM
+            - CentOS 7.7.1908 x86_64 with cloud-init (HVM)
           - Name: owner-id
             Values:
             - 057448758665
@@ -217,35 +228,67 @@ node_templates:
             store_private_key_material: true
 
 
+  nagios:
+    type: cloudify.nagios.nodes.Nagios
+    properties:
+        nagios_web_username: { get_input: nagios_web_username }
+        nagios_web_password: { get_input: nagios_web_password }
+        cloudify_manager_username: { get_secret: cloudify_manager_username }
+        cloudify_manager_password: { get_secret: cloudify_manager_password }
+        trap_community: { get_input: trap_community }
+        component_log_level: DEBUG
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: vm
+
+  base_instance:
+    type: cloudify.nagios.nodes.TargetType
+    properties:
+      name: base_instance_type
+      alias: Just pinging to check instance health
+      snmp_properties:
+        # At least on of v2c or v3 snmp properties are needed.
+        v3:
+          username: { get_input: snmpv3_username }
+          auth_pass: { get_input: snmpv3_auth_password }
+          priv_pass: { get_input: snmpv3_priv_password }
+      # If the instance becomes unhealthy, we will run the
+      # heal workflow on it.
+      # It is unhealthy if it does not respond to pings for some time.
+      action_on_instance_failure: *heal
+      check_interval: 0.25  # This should result in it taking about 15 seconds to trigger a heal
+      max_check_retries: 0
+    relationships:
+      - type: cloudify.nagios.configuration_for_nagios_server
+        target: nagios
+      - type: cloudify.nagios.target_type_checks
+        target: basecheck
+
+  basecheck:
+    type: cloudify.nagios.nodes.SNMPValueCheck
+    properties:
+      check_description: 1 minute load average
+      snmp_oid: UCD-SNMP-MIB::laLoad.1
+
   # command:
   #   type: cloudify.arbitrary_commands.nodes.executor
   #   relationships:
   #     - type: cloudify.relationships.contained_in
-  #       target: base_value_host
-groups:
-  base_trap_host_group:
-    members:
-      - base_trap_host
-      - nic
-      - ip
-
-
-policies:
-  gilan_scaling_policy:
-    type: cloudify.policies.scaling
-    properties:
-      default_instances: 1
-      min_instances: 1
-      max_instances: 2
-    targets: [base_trap_host_group]
+  #       target: nagios_host
 
 outputs:
+  http_endpoint:
+    description: Nagios URL
+    value: { concat: ['https://', { get_attribute: [ip, aws_resource_id] }, '/nagios' ] }
   internal_address:
     description: Internal nagios address
-    value: { get_attribute: [base_trap_host, private_ip_address] }
-  public_address:
-    description: Internal nagios address
-    value: { get_attribute: [base_trap_host, public_ip_address] }
-  key_content:
-    description: Private agent key
-    value: { get_attribute: [agent_key, private_key_export] }
+    value: { get_attribute: [vm, private_ip_address] }
+  nagios_ssl_certificate:
+    description: SSL certificate for accessing nagios and nagiosrest
+    value: { get_attribute: [nagios, ssl_certificate] }
+  nagios_web_username:
+    description: Username for nagios web interface and nagiosrest.
+    value: { get_input: nagios_web_username }
+  nagios_web_password:
+    description: Password for nagios web interface and nagiosrest.
+    value: { get_input: nagios_web_password }

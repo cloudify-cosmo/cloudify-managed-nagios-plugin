@@ -1,22 +1,83 @@
-tosca_definitions_version: cloudify_dsl_1_3
+tosca_definitions_version: cloudify_dsl_1_4
 
 description: >
   Nagios server with configuration for the basic examples.
 
 imports:
-  - http://www.getcloudify.org/spec/cloudify/4.3.2/types.yaml
-  - http://www.getcloudify.org/spec/openstack-plugin/2.0.1/plugin.yaml
+  - https://cloudify.co/spec/cloudify/6.4.0/types.yaml
+  - plugin:cloudify-aws-plugin
+  - plugin:cloudify-utilities-plugin?version= >=1.22.1
   - plugin:cloudify-managed-nagios-plugin
-  - plugin:arbitrary-command-plugin
+  # - plugin:arbitrary-command-plugin
 
 inputs:
-  floating_network_id: {}
-  management_network_name: {}
-  key_name: {}
-  image: {}
-  flavor: {}
+
+  aws_subnet_id:
+    type: string
+
+  aws_security_group_id:
+    type: string
+
+  aws_region_name:
+      type: string
+      default: 'eu-west-1'
+      constraints:
+        - valid_values:
+            - us-east-1
+            - us-east-2
+            - us-west-1
+            - us-west-2
+            - eu-central-1
+            - eu-west-1
+            - eu-west-2
+            - eu-south-1
+            - eu-west-3
+            - eu-north-1
+            - af-south-1
+            - ap-east-1
+            - ap-south-1
+            - ap-northeast-3
+            - ap-northeast-2
+            - ap-southeast-1
+            - ap-southeast-2
+            - ap-northeast-1
+            - ca-central-1
+            - cn-north-1
+            - cn-northwest-1
+            - me-south-1
+            - sa-east-1
+
+  instance_type:
+    type: string
+    default: t2.medium
+    constraints:
+      - valid_values:
+          - t2.micro
+          - t2.small
+          - t2.medium
+          - t2.large
+          - t2.xlarge
+          - t2.2xlarge
+
+  vm_key_name:
+    type: string
+    default: nagios-key-update-2
+
   agent_user:
-    default: centos
+    description: >
+      The username of the agent running on the instance created from the image.
+    default: 'centos'
+
+  agent_key_name:
+    type: string
+    default: agent_key
+
+  env_name:
+    type: string
+    description: Control parameters for names in resources.
+    default: 'example'
+
+
   nagios_web_username:
     default: admin
   nagios_web_password:
@@ -31,18 +92,19 @@ inputs:
     default: snmpnagiostestpriv
 
 dsl_definitions:
-  openstack_config: &openstack_config
-    username: { get_secret: keystone_username }
-    password: { get_secret: keystone_password }
-    tenant_name: { get_secret: keystone_tenant_name }
-    auth_url: { get_secret: keystone_url }
-    region: { get_secret: region }
+
+  client_config: &client_config
+    aws_access_key_id: { get_secret: aws_access_key_id }
+    aws_secret_access_key: { get_secret: aws_secret_access_key }
+    region_name: { get_input: aws_region_name }
+
 
   heal_workflow: &heal
     workflow_id: heal
     parameters:
       node_instance_id: "{{instance}}"
       diagnose_value: "Monitoring health check failure."
+      check_status: false
 
   scale_up_workflow: &scale_up
     workflow_id: scale
@@ -59,32 +121,112 @@ dsl_definitions:
       scale_compute: true
 
 node_templates:
-  nagios_host:
-    type: cloudify.openstack.nodes.Server
+
+  vm_keypair:
+    type: cloudify.nodes.aws.ec2.Keypair
     properties:
-      agent_config:
-        user: { get_input: agent_user }
-        install_method: remote
-        port: 22
-        key: { get_secret: agent_key_private }
-      server:
-        key_name: ''
-        image: { get_input: image }
-        flavor: { get_input: flavor }
-        key_name: { get_input: key_name }
-      openstack_config: *openstack_config
-      management_network_name: { get_input: management_network_name }
+      client_config: *client_config
+      resource_config:
+        KeyName: { get_input: vm_key_name }
+        PublicKeyMaterial: { get_attribute: [agent_key, public_key_export] }
     relationships:
-      - type: cloudify.openstack.server_connected_to_floating_ip
-        target: virtual_ip
+      - type: cloudify.relationships.depends_on
+        target: agent_key
 
-
-  virtual_ip:
-    type: cloudify.openstack.nodes.FloatingIP
+  vm:
+    type: cloudify.nodes.aws.ec2.Instances
     properties:
-      floatingip:
-        floating_network_id: { get_input: floating_network_id }
-      openstack_config: *openstack_config
+      client_config: *client_config
+      agent_config:
+        install_method: remote
+        user: { get_input: agent_user }
+        key: { get_attribute: [agent_key, private_key_export] }
+      resource_config:
+        ImageId: { get_attribute: [ ami, aws_resource_id ] }
+        InstanceType: { get_input: instance_type }
+        kwargs:
+          UserData: { get_attribute: [ cloud_init, cloud_config ] }
+          KeyName: { get_input: vm_key_name }
+          TagSpecifications:
+            - ResourceType: instance
+              Tags:
+                - Key: Name
+                  Value: { get_input: env_name }
+      use_public_ip: true
+      cloudify_tagging: true
+    relationships:
+    - type: cloudify.relationships.depends_on
+      target: ami
+    - type: cloudify.relationships.depends_on
+      target: nic
+    - type: cloudify.relationships.depends_on
+      target: ip
+    - type: cloudify.relationships.depends_on
+      target: cloud_init
+    - type: cloudify.relationships.depends_on
+      target: vm_keypair
+
+  ami:
+    type: cloudify.nodes.aws.ec2.Image
+    properties:
+      resource_config:
+        kwargs:
+          Filters:
+            - Name: name
+              Values:
+                - CentOS 7.9.2009 - HVM
+            - Name: owner-id
+              Values:
+                - 057448758665
+      client_config: *client_config
+
+  ip:
+    type: cloudify.nodes.aws.ec2.ElasticIP
+    properties:
+      client_config: *client_config
+    relationships:
+    - type: cloudify.relationships.depends_on
+      target: nic
+
+  nic:
+    type: cloudify.nodes.aws.ec2.Interface
+    properties:
+      client_config: *client_config
+      resource_config:
+        kwargs:
+          Description: Created by cloudify-getting-started-example.
+          SubnetId: { get_input: aws_subnet_id }
+          Groups:
+          - { get_input: aws_security_group_id }
+
+  cloud_init:
+    type: cloudify.nodes.CloudInit.CloudConfig
+    properties:
+      resource_config:
+        users:
+        - name: { get_input: agent_user }
+          shell: /bin/bash
+          sudo: ['ALL=(ALL) NOPASSWD:ALL']
+          ssh-authorized-keys:
+          - { get_attribute: [agent_key, public_key_export] }
+    relationships:
+      - type: cloudify.relationships.depends_on
+        target: agent_key
+
+  agent_key:
+    type: cloudify.keys.nodes.RSAKey
+    properties:
+      resource_config:
+        key_name: { get_input: agent_key_name }
+        openssh_format: true
+      use_secret_store: true
+      use_secrets_if_exist: true
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          implementation: keys.cloudify_ssh_key.operations.create
+          inputs:
+            store_private_key_material: true
 
 
   nagios:
@@ -98,7 +240,7 @@ node_templates:
         component_log_level: DEBUG
     relationships:
       - type: cloudify.relationships.contained_in
-        target: nagios_host
+        target: vm
 
   base_update_instance:
     type: cloudify.nagios.nodes.TargetType
@@ -144,23 +286,22 @@ node_templates:
       - type: cloudify.relationships.contained_in
         target: nagios
 
-  command:
-    type: cloudify.arbitrary_commands.nodes.executor
-    relationships:
-      - type: cloudify.relationships.contained_in
-        target: nagios_host
+  # command:
+  #   type: cloudify.arbitrary_commands.nodes.executor
+  #   relationships:
+  #     - type: cloudify.relationships.contained_in
+  #       target: nagios_host
 
 outputs:
   http_endpoint:
     description: Nagios URL
-    value: { concat: ['https://', { get_attribute: [virtual_ip, floating_ip_address] },
-                      '/nagios' ] }
+    value: { concat: ['https://', { get_attribute: [ip, aws_resource_id] }, '/nagios' ] }
   internal_address:
     description: Internal nagios address
-    value: { get_attribute: [nagios_host, ip] }
+    value: { get_attribute: [vm, private_ip_address] }
   external_address:
     description: External nagios address
-    value: { get_attribute: [virtual_ip, floating_ip_address] }
+    value: { get_attribute: [ip, aws_resource_id] }
   nagios_ssl_certificate:
     description: SSL certificate for accessing nagios and nagiosrest
     value: { get_attribute: [nagios, ssl_certificate] }
@@ -170,3 +311,6 @@ outputs:
   nagios_web_password:
     description: Password for nagios web interface and nagiosrest.
     value: { get_input: nagios_web_password }
+  key_content:
+    description: Private agent key
+    value: { get_attribute: [agent_key, private_key_export] }

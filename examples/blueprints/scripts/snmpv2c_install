@@ -1,3 +1,7 @@
+# Selinux should be left enforcing for production environments
+sudo setenforce 0
+sudo sed -i 's/SELINUX=enforcing/SELINUX=permissive/' /etc/selinux/config
+
 sudo yum install -y net-snmp-utils net-snmp
 sudo systemctl stop snmpd
 echo 'com2sec ConfigUser      default         cloudify_monitoring

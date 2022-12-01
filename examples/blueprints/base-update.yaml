@@ -111,17 +111,15 @@ node_templates:
       - type: cloudify.relationships.depends_on
         target: agent_key
 
-
-  base_trap_host:
+  base_value_host:
     type: monitoredvm
     instances:
       deploy: 1
     properties:
       agent_config:
-        user: { get_input: agent_user }
         install_method: remote
-        port: 22
-        key: { get_secret: agent_key_private }
+        user: { get_input: agent_user }
+        key: { get_attribute: [agent_key, private_key_export] }
       client_config: *client_config
       resource_config:
         ImageId: { get_attribute: [ ami, aws_resource_id ] }
@@ -137,7 +135,7 @@ node_templates:
       use_public_ip: true
       cloudify_tagging: true
       nagiosrest_monitoring:
-        target_type: basic_trap_instance_type
+        target_type: basic_update_instance_type
         address: { get_secret: nagiosrest_address }
         certificate: { get_secret: nagiosrest_certificate }
         username: { get_secret: nagiosrest_user }
@@ -160,12 +158,12 @@ node_templates:
       resource_config:
         kwargs:
           Filters:
-          - Name: name
-            Values:
-            - CentOS 7.9.2009 - HVM
-          - Name: owner-id
-            Values:
-            - 057448758665
+            - Name: name
+              Values:
+                - CentOS 7.9.2009 - HVM
+            - Name: owner-id
+              Values:
+                - 057448758665
       client_config: *client_config
 
   ip:
@@ -222,30 +220,14 @@ node_templates:
   #   relationships:
   #     - type: cloudify.relationships.contained_in
   #       target: base_value_host
-groups:
-  base_trap_host_group:
-    members:
-      - base_trap_host
-      - nic
-      - ip
-
-
-policies:
-  gilan_scaling_policy:
-    type: cloudify.policies.scaling
-    properties:
-      default_instances: 1
-      min_instances: 1
-      max_instances: 2
-    targets: [base_trap_host_group]
 
 outputs:
   internal_address:
     description: Internal nagios address
-    value: { get_attribute: [base_trap_host, private_ip_address] }
+    value: { get_attribute: [base_value_host, private_ip_address] }
   public_address:
     description: Internal nagios address
-    value: { get_attribute: [base_trap_host, public_ip_address] }
+    value: { get_attribute: [base_value_host, public_ip_address] }
   key_content:
     description: Private agent key
     value: { get_attribute: [agent_key, private_key_export] }

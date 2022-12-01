@@ -10,7 +10,7 @@ import logging_utils
 import nagios_utils
 import snmp_utils
 
-SNMP_TRAP_OID = '.1.3.6.1.6.3.1.1.4.1.0'
+SNMP_TRAP_OID = text_type('.1.3.6.1.6.3.1.1.4.1.0')
 TRAP_RECEIVED_PREFIX = 'SNMPTRAP {oid}: '
 TRAP_CONFIG_PATH = '/etc/nagios/objects/snmp_traps/{oid}.json'
 REACTION_CONFIG_PATH = (
@@ -102,16 +102,15 @@ def normalise_oids_and_get_trap_value(raw_details, oid_lookup, logger):
             oid=oid,
             value=item['value'],
         ))
-        details[oid] = item['value']
-        if oid == oid_lookup.get(SNMP_TRAP_OID):
+        details[text_type(oid)] = text_type(item['value'])
+        if text_type(oid) == oid_lookup.get(SNMP_TRAP_OID):
             logger.debug('Looking up trap identity')
-            trap_value = oid_lookup.get(item['value'])
+            trap_value = oid_lookup.get(text_type(item['value']))
             logger.debug('Trap identity found: {identity}'.format(
                 identity=trap_value,
             ))
 
     return trap_value, details
-
 
 def find_target_instance(action, details, message_source, logger):
     logger.info('Getting action details')
