@@ -58,14 +58,28 @@ META_GROUP_DETAILS_FINDER = re.compile(
 TENANT_DEPLOYMENT_HOSTGROUP = 'tenant:{tenant}/deployment:{deployment}'
 LOCKFILE_BASE = '/var/spool/nagios/cloudifyreaction'
 INSTANCE_LOCKFILE_PATH = os.path.join(LOCKFILE_BASE, '{instance}')
-NODE_LOCKFILE_PATH = os.path.join(LOCKFILE_BASE,
-                                  '{tenant}_{deployment}_{node}')
-GROUP_LOCKFILE_PATH = os.path.join(LOCKFILE_BASE,
-                                   '{tenant}_{group_type}_{group_name}')
+NODE_LOCKFILE_PATH = os.path.join(LOCKFILE_BASE, '{tenant}_{deployment}')
+GROUP_LOCKFILE_PATH = os.path.join(LOCKFILE_BASE, '{tenant}_{group_type}')
 
 
 class LockInUse(Exception):
     pass
+
+
+# Needed to prevent the `File name too long` I/O error
+def construct_lockfile_path(path_template, **kwargs):
+
+    lockfile_path = path_template.format(**kwargs)
+
+    # Notify the user
+    if len(lockfile_path) > 255:
+        logger.debug(
+            'The requested filename: {} exceeds the 255 char limit! Trimming.'
+        )
+
+    # The string slicing here prevents the file
+    # from exceeding the filename length limit.
+    return lockfile_path[:255]
 
 
 def acquire_lock(lockfile_path):
@@ -402,16 +416,23 @@ if __name__ == '__main__':
         if node_details:
             # This is a monitored node, not an instance
             logger.debug('Determining node lock path')
-            lockfile_path = NODE_LOCKFILE_PATH.format(**node_details)
+            lockfile_path = construct_lockfile_path(
+                NODE_LOCKFILE_PATH,
+                **node_details
+            )
         elif group_details:
             # This is a group
             logger.debug('Determining group lock path')
-            lockfile_path = GROUP_LOCKFILE_PATH.format(**group_details)
+            lockfile_path = construct_lockfile_path(
+                GROUP_LOCKFILE_PATH,
+                **group_details
+            )
         else:
             # This is an instance
             logger.debug('Determining instance lock path')
-            lockfile_path = INSTANCE_LOCKFILE_PATH.format(
-                instance=args.target,
+            lockfile_path = construct_lockfile_path(
+                INSTANCE_LOCKFILE_PATH,
+                instance=args.target
             )
         logger.debug('Lock path is {path}'.format(path=lockfile_path))
         if args.service:

@@ -1,7 +1,7 @@
-tosca_definitions_version: cloudify_dsl_1_4
+tosca_definitions_version: cloudify_dsl_1_3
 
 imports:
-  - https://cloudify.co/spec/cloudify/6.4.0/types.yaml
+  - https://cloudify.co/spec/cloudify/6.3.0/types.yaml
   - plugin:cloudify-aws-plugin
   - plugin:cloudify-utilities-plugin?version= >=1.22.1
   - plugin:cloudify-managed-nagios-plugin
@@ -76,7 +76,6 @@ inputs:
     default: 'example'
 
 
-
 dsl_definitions:
 
   client_config: &client_config
@@ -111,11 +110,34 @@ node_templates:
       - type: cloudify.relationships.depends_on
         target: agent_key
 
+  check_group_value:
+    type: cloudify.nagiosrest.nodes.GroupInstance
+    properties:
+      group_type: Test check group value
+      group_name: crossdeploymentvaluegroup
+      reaction_target: basegroup-nocollide1
+      nagiosrest_monitoring:
+        address: { get_secret: nagiosrest_address }
+        certificate: { get_secret: nagiosrest_certificate }
+        username: { get_secret: nagiosrest_user }
+        password: { get_secret: nagiosrest_pass }
 
-  base_trap_host:
+  check_group_counter:
+    type: cloudify.nagiosrest.nodes.GroupInstance
+    properties:
+      group_type: Test check group counter
+      group_name: crossdeploymentcountergroup
+      reaction_target: basegroup-nocollide1
+      nagiosrest_monitoring:
+        address: { get_secret: nagiosrest_address }
+        certificate: { get_secret: nagiosrest_certificate }
+        username: { get_secret: nagiosrest_user }
+        password: { get_secret: nagiosrest_pass }
+
+  base_group_nocollide_host:
     type: monitoredvm
     instances:
-      deploy: 1
+      deploy: 2
     properties:
       agent_config:
         user: { get_input: agent_user }
@@ -137,12 +159,19 @@ node_templates:
       use_public_ip: true
       cloudify_tagging: true
       nagiosrest_monitoring:
-        target_type: basic_trap_instance_type
+        target_type: basic_group_nocollide_instance_type
+        groups:
+            - ["Test check group value", "crossdeploymentvaluegroup"]
+            - ["Test check group counter", "crossdeploymentcountergroup"]
         address: { get_secret: nagiosrest_address }
         certificate: { get_secret: nagiosrest_certificate }
         username: { get_secret: nagiosrest_user }
         password: { get_secret: nagiosrest_pass }
     relationships:
+      - type: cloudify.relationships.depends_on
+        target: check_group_value
+      - type: cloudify.relationships.depends_on
+        target: check_group_counter
       - type: cloudify.relationships.depends_on
         target: ami
       - type: cloudify.relationships.depends_on
@@ -154,6 +183,7 @@ node_templates:
       - type: cloudify.relationships.depends_on
         target: vm_keypair
 
+
   ami:
     type: cloudify.nodes.aws.ec2.Image
     properties:
@@ -162,7 +192,7 @@ node_templates:
           Filters:
           - Name: name
             Values:
-            - CentOS 7.9.2009 - HVM
+            - CentOS 7.7.1908 x86_64 with cloud-init (HVM)
           - Name: owner-id
             Values:
             - 057448758665
@@ -222,30 +252,8 @@ node_templates:
   #   relationships:
   #     - type: cloudify.relationships.contained_in
   #       target: base_value_host
-groups:
-  base_trap_host_group:
-    members:
-      - base_trap_host
-      - nic
-      - ip
-
-
-policies:
-  gilan_scaling_policy:
-    type: cloudify.policies.scaling
-    properties:
-      default_instances: 1
-      min_instances: 1
-      max_instances: 2
-    targets: [base_trap_host_group]
 
 outputs:
-  internal_address:
-    description: Internal nagios address
-    value: { get_attribute: [base_trap_host, private_ip_address] }
-  public_address:
-    description: Internal nagios address
-    value: { get_attribute: [base_trap_host, public_ip_address] }
-  key_content:
-    description: Private agent key
-    value: { get_attribute: [agent_key, private_key_export] }
+  ip_address:
+    description: IP address
+    value: { get_attribute: [base_group_nocollide_host, private_ip_address] }

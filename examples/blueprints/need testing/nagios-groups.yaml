@@ -1,17 +1,16 @@
-tosca_definitions_version: cloudify_dsl_1_4
+tosca_definitions_version: cloudify_dsl_1_3
 
 description: >
   Nagios server with configuration for the basic examples.
 
 imports:
-  - https://cloudify.co/spec/cloudify/6.4.0/types.yaml
+  - https://cloudify.co/spec/cloudify/6.3.0/types.yaml
   - plugin:cloudify-aws-plugin
   - plugin:cloudify-utilities-plugin?version= >=1.22.1
   - plugin:cloudify-managed-nagios-plugin
   # - plugin:arbitrary-command-plugin
 
 inputs:
-
 
   aws_subnet_id:
     type: string
@@ -60,10 +59,6 @@ inputs:
           - t2.xlarge
           - t2.2xlarge
 
-  vm_key_name:
-    type: string
-    default: nagios-traps
-
   agent_user:
     description: >
       The username of the agent running on the instance created from the image.
@@ -82,7 +77,7 @@ inputs:
   nagios_web_username:
     default: admin
   nagios_web_password:
-    default: admin
+    default: securepassword
   trap_community:
     default: testcommunity
   snmpv3_username:
@@ -104,7 +99,6 @@ dsl_definitions:
     parameters:
       node_instance_id: "{{instance}}"
       diagnose_value: "Monitoring health check failure."
-      check_status: false
 
   scale_up_workflow: &scale_up
     workflow_id: scale
@@ -113,26 +107,28 @@ dsl_definitions:
       delta: "+1"
       scale_compute: true
 
-  scale_down_workflow: &scale_down
+  scale_up_workflow: &scale_down
     workflow_id: scale
     parameters:
       scalable_entity_name: "{{node}}"
       delta: "-1"
       scale_compute: true
 
+  scale_down_workflow: &specific_scale_down
+    workflow_id: scale
+    parameters:
+      scalable_entity_name: "base_group_host"
+      delta: "-2"
+      scale_compute: true
+
+  scale_up_workflow: &specific_scale_up
+    workflow_id: scale
+    parameters:
+      scalable_entity_name: "base_group_host"
+      delta: "+2"
+      scale_compute: true
+
 node_templates:
-
-  vm_keypair:
-    type: cloudify.nodes.aws.ec2.Keypair
-    properties:
-      client_config: *client_config
-      resource_config:
-        KeyName: { get_input: vm_key_name }
-        PublicKeyMaterial: { get_attribute: [agent_key, public_key_export] }
-    relationships:
-      - type: cloudify.relationships.depends_on
-        target: agent_key
-
 
   vm:
     type: cloudify.nodes.aws.ec2.Instances
@@ -147,7 +143,6 @@ node_templates:
         InstanceType: { get_input: instance_type }
         kwargs:
           UserData: { get_attribute: [ cloud_init, cloud_config ] }
-          KeyName: { get_input: vm_key_name }
           TagSpecifications:
             - ResourceType: instance
               Tags:
@@ -173,7 +168,7 @@ node_templates:
           Filters:
           - Name: name
             Values:
-            - CentOS 7.9.2009 - HVM
+            - CentOS 7.7.1908 x86_64 with cloud-init (HVM)
           - Name: owner-id
             Values:
             - 057448758665
@@ -241,11 +236,11 @@ node_templates:
       - type: cloudify.relationships.contained_in
         target: vm
 
-  base_trap_instance:
+  base_value_instance:
     type: cloudify.nagios.nodes.TargetType
     properties:
-      name: basic_trap_instance_type
-      alias: Just pinging to check instance health
+      name: basic_group_instance_type
+      alias: Checking grouped values
       snmp_properties:
         # At least on of v2c or v3 snmp properties are needed.
         v3:
@@ -257,56 +252,52 @@ node_templates:
       - type: cloudify.nagios.configuration_for_nagios_server
         target: nagios
       - type: cloudify.nagios.target_type_checks
-        target: basic_trap
+        target: aggregatecheck
       - type: cloudify.nagios.target_type_checks
-        target: verbose_trap
-      - type: cloudify.nagios.target_type_checks
-        target: scale_up_trap
+        target: aggregateratecheck
 
-  basic_trap:
-    type: cloudify.nagios.nodes.SNMPTrapReaction
+  aggregatecheck:
+    type: cloudify.nagios.nodes.SNMPAggregateValueCheck
     properties:
-      trap_oid: CLOUDIFY-TEST-MIB::cloudifyTestBasicNotify
-      reaction: *scale_down
-      # Note: max_instances can also be set
-      min_instances: 1
-    relationships:
-      - type: cloudify.relationships.depends_on
-        target: cloudify_mib
-      - type: cloudify.relationships.depends_on
-        target: cloudify_test_mib
-      - type: cloudify.relationships.contained_in
-        target: nagios
+      check_description: Get average of test integers
+      snmp_oids: CLOUDIFY-TEST-MIB::cloudifyTestInteger
+      aggregation_type: sum
+      check_interval: 0.25
+      max_check_retries: 0
+      on_unknown: ignore
 
-  scale_up_trap:
-    type: cloudify.nagios.nodes.SNMPTrapReaction
+  aggregateratecheck:
+    type: cloudify.nagios.nodes.SNMPAggregateValueCheck
     properties:
-      trap_oid: CLOUDIFY-TEST-MIB::cloudifyTestOtherBasicNotify
-      reaction: *scale_up
-      max_instances: 2
-    relationships:
-      - type: cloudify.relationships.depends_on
-        target: cloudify_mib
-      - type: cloudify.relationships.depends_on
-        target: cloudify_test_mib
-      - type: cloudify.relationships.contained_in
-        target: nagios
+      check_description: Get average of test counter rates
+      snmp_oids: CLOUDIFY-TEST-MIB::cloudifyTestCounter
+      aggregation_type: arithmetic_mean
+      check_interval: 0.25
+      max_check_retries: 0
+      on_unknown: ignore
+      rate_check: true
 
-  verbose_trap:
-    type: cloudify.nagios.nodes.SNMPTrapReaction
+  checkgroup:
+    type: cloudify.nagios.nodes.CheckGroupType
     properties:
-      trap_oid: CLOUDIFY-TEST-MIB::cloudifyTestVerboseNotify
-      instance_oid: .1.3.6.1.4.1.52312.0.1.2
-      instance_finder: "^\"The address is (?P<address>[0-9.]+)\"$"
-      oid_for_message: .1.3.6.1.4.1.52312.0.1.1
-      reaction: *heal
+      # Note that this type of check cannot take min/max instances
+      name: Test check group
+      aggregation_type: arithmetic_mean
+      high_warning_threshold: 0.25
+      high_critical_threshold: 0.75
+      high_critical_threshold: 0.0
+      # Because this has no directly associated node, we must specify our targets
+      action_on_high_threshold: *specific_scale_down
+      action_on_low_threshold: *specific_scale_up
+      on_unknown: ignore
+      check_interval: 0.25
     relationships:
-      - type: cloudify.relationships.depends_on
-        target: cloudify_mib
-      - type: cloudify.relationships.depends_on
-        target: cloudify_test_mib
-      - type: cloudify.relationships.contained_in
+      - type: cloudify.nagios.configuration_for_nagios_server
         target: nagios
+      - type: cloudify.nagios.group_check
+        target: aggregateratecheck
+      - type: cloudify.nagios.group_check
+        target: aggregatecheck
 
   cloudify_mib:
     type: cloudify.nagios.nodes.MIB
@@ -349,6 +340,3 @@ outputs:
   nagios_web_password:
     description: Password for nagios web interface and nagiosrest.
     value: { get_input: nagios_web_password }
-  key_content:
-    description: Private agent key
-    value: { get_attribute: [agent_key, private_key_export] }
