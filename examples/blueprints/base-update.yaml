@@ -160,10 +160,10 @@ node_templates:
           Filters:
             - Name: name
               Values:
-                - CentOS 7.9.2009 - HVM
+                - 'CentOS Linux 7 x86_64 - 2211'
             - Name: owner-id
               Values:
-                - 057448758665
+                - '125523088429'
       client_config: *client_config
 
   ip:
