@@ -66,7 +66,7 @@ def create(ctx):
     x = run(['curl',
             'https://assets.nagios.com/downloads/nagiosxi/install.sh | sh'],
             sudo=True)
-    print(x)
+    ctx.logger.info(x)
     yum_install([
         'mod_ssl',
         # 'nagios',
