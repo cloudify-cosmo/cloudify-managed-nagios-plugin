@@ -65,6 +65,7 @@ def create(ctx):
     ctx.logger.info('Installing required packages')
     x = run(['cd', '/tmp'], sudo=True)
     ctx.logger.info(x)
+    yum_install(['wget'])
     x = run(['wget',
              'https://assets.nagios.com/downloads/nagiosxi/xi-latest.tar.gz'],
             sudo=True)
