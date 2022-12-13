@@ -63,18 +63,19 @@ def create(ctx):
     yum_install(text_type('epel-release'))
 
     ctx.logger.info('Installing required packages')
-    run(['cd', '/tmp'], sudo=True)
-    yum_install(['wget'])
-    run(['wget',
-             'https://assets.nagios.com/downloads/nagiosxi/xi-latest.tar.gz'],
-            sudo=True)
-    # ctx.logger.info(x)
-    x = run(['tar', 'xzf', 'xi-latest.tar.gz'], sudo=True)
-    ctx.logger.info(x)
-    x = run(['cd', 'nagiosxi'], sudo=True)
-    ctx.logger.info(x)
-    x = run(['./fullinstall'], sudo=True)
-    ctx.logger.info(x)
+    run(['curl',
+         'https://assets.nagios.com/downloads/nagiosxi/install.sh',
+         '|',
+         'sh'],
+        sudo=True)
+    # run(['cd', '/tmp'], sudo=True)
+    # yum_install(['wget'])
+    # run(['wget',
+    #          'https://assets.nagios.com/downloads/nagiosxi/xi-latest.tar.gz'],
+    #         sudo=True)
+    # x = run(['tar', 'xzf', 'xi-latest.tar.gz'], sudo=True)
+    # x = run(['cd', 'nagiosxi'], sudo=True)
+    # x = run(['./fullinstall'], sudo=True)
     # yum_install([
     #     'mod_ssl',
     #     'nagios',
