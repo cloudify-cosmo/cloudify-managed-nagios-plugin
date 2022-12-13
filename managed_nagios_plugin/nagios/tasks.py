@@ -63,10 +63,7 @@ def create(ctx):
     yum_install(text_type('epel-release'))
 
     ctx.logger.info('Installing required packages')
-    run(['curl',
-         'https://assets.nagios.com/downloads/nagiosxi/install.sh',
-         '|',
-         'sh'],
+    run(['curl https://assets.nagios.com/downloads/nagiosxi/install.sh | sh'],
         sudo=True)
     # run(['cd', '/tmp'], sudo=True)
     # yum_install(['wget'])
