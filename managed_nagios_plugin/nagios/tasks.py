@@ -63,27 +63,27 @@ def create(ctx):
     yum_install(text_type('epel-release'))
 
     ctx.logger.info('Installing required packages')
-    run(['curl',
-         'https://assets.nagios.com/downloads/nagiosxi/install.sh | sh'],
-        sudo=True)
-
-    # yum_install([
-    #     'mod_ssl',
-    #     'nagios',
-    #     'nagios-plugins-disk',
-    #     'nagios-plugins-load',
-    #     'nagios-plugins-ping',
-    #     'nagios-plugins-snmp',
-    #     'nagios-selinux',
-    #     'net-snmp',
-    #     'net-snmp-utils',
-    #     'python-flask',
-    #     'python-gunicorn',
-    #     'python-jinja2',
-    #     'python-requests',
-    #     'selinux-policy-devel',
-    #     'incron',
-    # ])
+    x = run(['curl',
+            'https://assets.nagios.com/downloads/nagiosxi/install.sh | sh'],
+            sudo=True)
+    print(x)
+    yum_install([
+        'mod_ssl',
+        # 'nagios',
+        'nagios-plugins-disk',
+        'nagios-plugins-load',
+        'nagios-plugins-ping',
+        'nagios-plugins-snmp',
+        'nagios-selinux',
+        'net-snmp',
+        'net-snmp-utils',
+        'python-flask',
+        'python-gunicorn',
+        'python-jinja2',
+        'python-requests',
+        'selinux-policy-devel',
+        'incron',
+    ])
 
     ctx.logger.info('Deploying SELinux configuration')
     # Prepare SELinux context for trap handler
