@@ -138,6 +138,7 @@ node_templates:
     properties:
       client_config: *client_config
       agent_config:
+        network: external
         install_method: remote
         user: { get_input: agent_user }
         key: { get_attribute: [agent_key, private_key_export] }
