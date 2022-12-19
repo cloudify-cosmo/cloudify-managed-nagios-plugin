@@ -4,6 +4,7 @@ import logging
 import os
 import pkgutil
 import tempfile
+import urllib.request
 
 from cloudify.decorators import operation
 from cloudify.exceptions import NonRecoverableError
@@ -63,8 +64,14 @@ def create(ctx):
     yum_install(text_type('epel-release'))
 
     ctx.logger.info('Installing required packages')
-    run(['curl https://assets.nagios.com/downloads/nagiosxi/install.sh | sh'],
-        sudo=True)
+
+    with urllib.request.urlopen(
+            'https://assets.nagios.com/downloads/nagiosxi/install.sh') as f:
+        html = f.read().decode('utf-8')
+        with tempfile.NamedTemporaryFile() as file:
+            file.write(html.encode())
+            run(['sh', file.name], sudo=True)
+
     # run(['cd', '/tmp'], sudo=True)
     # yum_install(['wget'])
     # run(['wget',
