@@ -1,3 +1,7 @@
+import shlex
+
+from cloudify.exceptions import RecoverableError
+
 try:
     from ._compat import text_type
 except:
@@ -134,6 +138,24 @@ def run(command, sudo=False):
     return subprocess.check_output(
         command, stderr=subprocess.STDOUT,
     )
+
+
+def execute_for_sudo(command, ctx):
+    """Execute function for sudo.
+    :param command:
+    :return:
+    """
+    command = shlex.split(command)
+    ctx.logger.debug('running {0}'.format(command))
+    proc = subprocess.Popen(command,
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE)
+    (out, err) = proc.communicate()
+    ctx.logger.info('out: {0}'.format(out))
+    ctx.logger.info('err: {0}'.format(err))
+    ctx.logger.info('proc.returncode: {0}'.format(proc.returncode))
+    if proc.returncode != 0:
+        raise RecoverableError('command {0} failed'.format(command))
 
 
 def deploy_file(data, destination,

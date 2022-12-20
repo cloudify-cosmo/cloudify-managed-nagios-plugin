@@ -4,7 +4,7 @@ import logging
 import os
 import pkgutil
 import tempfile
-import urllib.request
+# import urllib.request
 
 from cloudify.decorators import operation
 from cloudify.exceptions import NonRecoverableError
@@ -30,6 +30,7 @@ from managed_nagios_plugin.utils import (
     generate_certs,
     reload_systemd_configuration,
     run,
+    execute_for_sudo,
     start_service,
     stop_service,
     yum_install,
@@ -65,13 +66,13 @@ def create(ctx):
 
     ctx.logger.info('Installing required packages')
     yum_install(['wget'])
-    run(['cd', '/tmp'], sudo=True)
-    run(['wget',
+    execute_for_sudo(['cd', '/tmp'], ctx=ctx)
+    execute_for_sudo(['wget',
          'https://assets.nagios.com/downloads/nagiosxi/xi-latest.tar.gz tar'],
-        sudo=True)
-    run(['xzf', 'xi-latest.tar.gz'], sudo=True)
-    run(['cd', 'nagiosxi'], sudo=True)
-    run(['./fullinstall'], sudo=True)
+        ctx=ctx)
+    execute_for_sudo(['xzf', 'xi-latest.tar.gz'], ctx=ctx)
+    execute_for_sudo(['cd', 'nagiosxi'], ctx=ctx)
+    execute_for_sudo(['./fullinstall'], ctx=ctx)
 
     # with urllib.request.urlopen(
     #         'https://assets.nagios.com/downloads/nagiosxi/install.sh') as f:
