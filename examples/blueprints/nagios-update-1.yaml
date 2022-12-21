@@ -175,10 +175,10 @@ node_templates:
           Filters:
             - Name: name
               Values:
-                - 'CentOS Linux 7 x86_64 - 2211'
+                - 'CentOS7-cloudify-example-nagios'
             - Name: owner-id
               Values:
-                - '125523088429'
+                - '263721492972'
       client_config: *client_config
 
   ip:
