@@ -173,9 +173,12 @@ node_templates:
       resource_config:
         kwargs:
           Filters:
-            - Name: name
+            - Name: image-id
               Values:
-                - 'CentOS7-cloudify-example-nagios'
+                - 'ami-09369ff7e201658a7'
+#            - Name: name
+#              Values:
+#                - 'CentOS7-cloudify-example-nagios'
             - Name: owner-id
               Values:
                 - '263721492972'
