@@ -141,10 +141,6 @@ def run(command, sudo=False):
 
 
 def execute_for_sudo(command, ctx):
-    """Execute function for sudo.
-    :param command:
-    :return:
-    """
     command = shlex.split(command)
     ctx.logger.debug('running {0}'.format(command))
     proc = subprocess.Popen(command,
@@ -153,7 +149,7 @@ def execute_for_sudo(command, ctx):
     (out, err) = proc.communicate()
     ctx.logger.info('out: {0}'.format(out))
     ctx.logger.info('err: {0}'.format(err))
-    ctx.logger.info('proc.returncode: {0}'.format(proc.returncode))
+    ctx.logger.info('proc.return code: {0}'.format(proc.returncode))
     if proc.returncode != 0:
         raise RecoverableError('command {0} failed'.format(command))
 
