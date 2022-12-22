@@ -68,7 +68,8 @@ def create(ctx):
     yum_install(['wget'])
     execute_for_sudo('curl -Lo /tmp/xi-latest.tar.gz https://assets.nagios.com/downloads/nagiosxi/xi-latest.tar.gz', ctx=ctx)
     execute_for_sudo('tar xzf /tmp/xi-latest.tar.gz -C /tmp', ctx=ctx)
-    execute_for_sudo('/tmp/nagiosxi/fullinstall', ctx=ctx)
+    os.system('sudo /tmp/nagiosxi/fullinstall')
+    # execute_for_sudo('/tmp/nagiosxi/fullinstall', ctx=ctx)
 
     # with urllib.request.urlopen(
     #         'https://assets.nagios.com/downloads/nagiosxi/install.sh') as f:
