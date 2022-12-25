@@ -105,23 +105,23 @@ def create(ctx):
     #     'incron',
     # ])
 
-    ctx.logger.info('Deploying SELinux configuration')
+    # ctx.logger.info('Deploying SELinux configuration')
     # Prepare SELinux context for trap handler
-    tmp_path = tempfile.mkdtemp()
-    with open(
-        os.path.join(tmp_path, 'cloudify-nagios-snmp-trap-handler.te'), 'w',
-    ) as policy_handle:
-        policy_handle.write(_decode_if_bytes(pkgutil.get_data(
-            'managed_nagios_plugin',
-            'resources/selinux/cloudify_nagios_snmp_trap_handler.te',
-        )))
-    run(['make', '-f', '/usr/share/selinux/devel/Makefile', '-C', tmp_path],
-        sudo=True)
-    run(['semodule',
-         '-i',
-         os.path.join(tmp_path, 'cloudify-nagios-snmp-trap-handler.pp')],
-        sudo=True)
-    run(['rm', '-rf', tmp_path], sudo=True)
+    # tmp_path = tempfile.mkdtemp()
+    # with open(
+    #     os.path.join(tmp_path, 'cloudify-nagios-snmp-trap-handler.te'), 'w',
+    # ) as policy_handle:
+    #     policy_handle.write(_decode_if_bytes(pkgutil.get_data(
+    #         'managed_nagios_plugin',
+    #         'resources/selinux/cloudify_nagios_snmp_trap_handler.te',
+    #     )))
+    # run(['make', '-f', '/usr/share/selinux/devel/Makefile', '-C', tmp_path],
+    #     sudo=True)
+    # run(['semodule',
+    #      '-i',
+    #      os.path.join(tmp_path, 'cloudify-nagios-snmp-trap-handler.pp')],
+    #     sudo=True)
+    # run(['rm', '-rf', tmp_path], sudo=True)
 
     ctx.logger.info('Deploying nagios plugins and SNMP trap handler')
     for supporting_lib in ('_compat.py',
