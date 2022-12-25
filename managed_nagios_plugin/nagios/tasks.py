@@ -123,200 +123,200 @@ def create(ctx):
     #     sudo=True)
     # run(['rm', '-rf', tmp_path], sudo=True)
 
-    ctx.logger.info('Deploying nagios plugins and SNMP trap handler')
-    for supporting_lib in ('_compat.py',
-                           'constants.py',
-                           'utils.py',
-                           'snmp_utils.py',
-                           'nagios_utils.py',
-                           'rest_utils.py',
-                           'resources/scripts/nagios_plugin_utils.py',
-                           'resources/scripts/logging_utils.py'):
-        if supporting_lib.startswith('resources/scripts/'):
-            destination_filename = supporting_lib[len('resources/scripts/'):]
-        else:
-            destination_filename = supporting_lib
-        deploy_file(
-            data=pkgutil.get_data(
-                'managed_nagios_plugin',
-                supporting_lib,
-            ),
-            destination='/usr/lib64/nagios/plugins/' + destination_filename,
-            ownership='root.nagios',
-            permissions='440',
-            sudo=True,
-        )
-    for script in ('check_snmp_numeric',
-                   'check_snmp_aggregate',
-                   'check_group_aggregate',
-                   'check_group_meta_aggregate',
-                   'cloudify_nagios_snmp_trap_handler',
-                   'notify_cloudify',
-                   'check_nagios_command_file',
-                   'check_snmptrap_checks'):
-        source = os.path.join('resources/scripts/', script)
-        script_content = pkgutil.get_data('managed_nagios_plugin', source)
-        destination = os.path.join('/usr/lib64/nagios/plugins', script)
-        deploy_file(
-            data=script_content,
-            destination=destination,
-            permissions='550',
-            sudo=True,
-        )
+    # ctx.logger.info('Deploying nagios plugins and SNMP trap handler')
+    # for supporting_lib in ('_compat.py',
+    #                        'constants.py',
+    #                        'utils.py',
+    #                        'snmp_utils.py',
+    #                        'nagios_utils.py',
+    #                        'rest_utils.py',
+    #                        'resources/scripts/nagios_plugin_utils.py',
+    #                        'resources/scripts/logging_utils.py'):
+    #     if supporting_lib.startswith('resources/scripts/'):
+    #         destination_filename = supporting_lib[len('resources/scripts/'):]
+    #     else:
+    #         destination_filename = supporting_lib
+    #     deploy_file(
+    #         data=pkgutil.get_data(
+    #             'managed_nagios_plugin',
+    #             supporting_lib,
+    #         ),
+    #         destination='/usr/lib64/nagios/plugins/' + destination_filename,
+    #         ownership='root.nagios',
+    #         permissions='440',
+    #         sudo=True,
+    #     )
+    # for script in ('check_snmp_numeric',
+    #                'check_snmp_aggregate',
+    #                'check_group_aggregate',
+    #                'check_group_meta_aggregate',
+    #                'cloudify_nagios_snmp_trap_handler',
+    #                'notify_cloudify',
+    #                'check_nagios_command_file',
+    #                'check_snmptrap_checks'):
+    #     source = os.path.join('resources/scripts/', script)
+    #     script_content = pkgutil.get_data('managed_nagios_plugin', source)
+    #     destination = os.path.join('/usr/lib64/nagios/plugins', script)
+    #     deploy_file(
+    #         data=script_content,
+    #         destination=destination,
+    #         permissions='550',
+    #         sudo=True,
+    #     )
+    #
+    # ctx.logger.info('Deploying nagiosrest')
+    # run(['mkdir', '-p', '/usr/local/www/nagiosrest'], sudo=True)
+    # for nagiosrest_file in ('nagiosrest.py',
+    #                         'nagiosrest_group.py',
+    #                         'nagiosrest_target.py',
+    #                         'nagiosrest_tenant.py',
+    #                         'logging_utils.py'):
+    #     deploy_file(
+    #         data=pkgutil.get_data(
+    #             'managed_nagios_plugin',
+    #             'resources/scripts/' + nagiosrest_file,
+    #         ),
+    #         destination='/usr/local/www/nagiosrest/' + nagiosrest_file,
+    #         ownership='root.nagios',
+    #         permissions='440',
+    #         sudo=True,
+    #     )
+    # for supporting_lib in ('_compat.py',
+    #                        'nagios_utils.py',
+    #                        'utils.py',
+    #                        'constants.py'):
+    #     deploy_file(
+    #         data=pkgutil.get_data(
+    #             'managed_nagios_plugin',
+    #             supporting_lib,
+    #         ),
+    #         destination='/usr/local/www/nagiosrest/' + supporting_lib,
+    #         ownership='root.nagios',
+    #         permissions='440',
+    #         sudo=True,
+    #     )
+    # for template in ('hostgroup.template', 'target.template', 'node.template',
+    #                  'group.template', 'group_check.template',
+    #                  'meta_group_check.template'):
+    #     deploy_file(
+    #         data=pkgutil.get_data(
+    #             'managed_nagios_plugin',
+    #             os.path.join('resources', template),
+    #         ),
+    #         destination='/usr/local/www/nagiosrest/' + template,
+    #         ownership='root.nagios',
+    #         permissions='440',
+    #         sudo=True,
+    #     )
+    # deploy_file(
+    #     data=pkgutil.get_data(
+    #         'managed_nagios_plugin',
+    #         'resources/base_configuration/systemd_nagiosrest.conf',
+    #     ),
+    #     destination='/usr/lib/systemd/system/nagiosrest-gunicorn.service',
+    #     ownership='root.root',
+    #     permissions='440',
+    #     sudo=True,
+    # )
 
-    ctx.logger.info('Deploying nagiosrest')
-    run(['mkdir', '-p', '/usr/local/www/nagiosrest'], sudo=True)
-    for nagiosrest_file in ('nagiosrest.py',
-                            'nagiosrest_group.py',
-                            'nagiosrest_target.py',
-                            'nagiosrest_tenant.py',
-                            'logging_utils.py'):
-        deploy_file(
-            data=pkgutil.get_data(
-                'managed_nagios_plugin',
-                'resources/scripts/' + nagiosrest_file,
-            ),
-            destination='/usr/local/www/nagiosrest/' + nagiosrest_file,
-            ownership='root.nagios',
-            permissions='440',
-            sudo=True,
-        )
-    for supporting_lib in ('_compat.py',
-                           'nagios_utils.py',
-                           'utils.py',
-                           'constants.py'):
-        deploy_file(
-            data=pkgutil.get_data(
-                'managed_nagios_plugin',
-                supporting_lib,
-            ),
-            destination='/usr/local/www/nagiosrest/' + supporting_lib,
-            ownership='root.nagios',
-            permissions='440',
-            sudo=True,
-        )
-    for template in ('hostgroup.template', 'target.template', 'node.template',
-                     'group.template', 'group_check.template',
-                     'meta_group_check.template'):
-        deploy_file(
-            data=pkgutil.get_data(
-                'managed_nagios_plugin',
-                os.path.join('resources', template),
-            ),
-            destination='/usr/local/www/nagiosrest/' + template,
-            ownership='root.nagios',
-            permissions='440',
-            sudo=True,
-        )
-    deploy_file(
-        data=pkgutil.get_data(
-            'managed_nagios_plugin',
-            'resources/base_configuration/systemd_nagiosrest.conf',
-        ),
-        destination='/usr/lib/systemd/system/nagiosrest-gunicorn.service',
-        ownership='root.root',
-        permissions='440',
-        sudo=True,
-    )
-
-    ctx.logger.info('Deploying notification configuration script')
-    deploy_file(
-        data=pkgutil.get_data(
-            'managed_nagios_plugin',
-            'resources/scripts/update_notify_cloudify_configuration',
-        ),
-        destination='/usr/local/bin/update_notify_cloudify_configuration',
-        ownership='root.root',
-        permissions='500',
-        sudo=True,
-        # Must have the group of the agent user for reconcile operation to
-        # work correctly
-        template_params={'group': grp.getgrgid(os.getgid()).gr_name},
-    )
-    deploy_file(
-        data=pkgutil.get_data(
-            'managed_nagios_plugin',
-            '_compat.py',
-        ),
-        destination='/usr/local/bin/_compat.py',
-        ownership='root.root',
-        permissions='400',
-        sudo=True,
-    )
-    deploy_file(
-        data=pkgutil.get_data(
-            'managed_nagios_plugin',
-            'utils.py',
-        ),
-        destination='/usr/local/bin/utils.py',
-        ownership='root.root',
-        permissions='400',
-        sudo=True,
-    )
-    deploy_file(
-        data=pkgutil.get_data(
-            'managed_nagios_plugin',
-            'constants.py',
-        ),
-        destination='/usr/local/bin/constants.py',
-        ownership='root.root',
-        permissions='400',
-        sudo=True,
-    )
-
-    ctx.logger.info(
-        'Creating directory structure for storing temporary rate data'
-    )
-    for rate_dir in ('nodes', 'instances'):
-        rate_storage_path = os.path.join(RATE_BASE_PATH, rate_dir)
-        run(['mkdir', '-p', rate_storage_path], sudo=True)
-        run(['chown', 'nagios.', rate_storage_path], sudo=True)
-        run(['restorecon', rate_storage_path], sudo=True)
-
-    if props['ssl_certificate']:
-
-        if props['ssl_certificate'].startswith("-----BEGIN CERTIFICATE-----"):
-            deploy_file(
-                data=props['ssl_key'],
-                destination=SSL_KEY_PATH,
-                ownership='root.root',
-                permissions='440',
-                sudo=True,
-            )
-            deploy_file(
-                data=props['ssl_certificate'],
-                destination=SSL_CERT_PATH,
-                ownership='root.root',
-                permissions='444',
-                sudo=True,
-            )
-        else:
-            download_and_deploy_file_from_blueprint(
-                source=BLUEPRINT_SSL_KEY_PATH.format(
-                    key_file=props['ssl_key'],
-                ),
-                destination=SSL_KEY_PATH,
-                ownership='root.root',
-                permissions='440',
-                ctx=ctx,
-            )
-            download_and_deploy_file_from_blueprint(
-                source=BLUEPRINT_SSL_CERT_PATH.format(
-                    cert_file=props['ssl_certificate'],
-                ),
-                destination=SSL_CERT_PATH,
-                ownership='root.root',
-                permissions='444',
-                ctx=ctx,
-            )
-    else:
-        ctx.logger.info('Generating SSL certificate')
-        generate_certs(SSL_KEY_PATH, SSL_CERT_PATH, ctx.logger)
-    with open(SSL_CERT_PATH) as crt_handle:
-        ctx.instance.runtime_properties['ssl_certificate'] = crt_handle.read()
-
-    ctx.logger.info('Reloading systemd configuration')
-    reload_systemd_configuration()
+    # ctx.logger.info('Deploying notification configuration script')
+    # deploy_file(
+    #     data=pkgutil.get_data(
+    #         'managed_nagios_plugin',
+    #         'resources/scripts/update_notify_cloudify_configuration',
+    #     ),
+    #     destination='/usr/local/bin/update_notify_cloudify_configuration',
+    #     ownership='root.root',
+    #     permissions='500',
+    #     sudo=True,
+    #     # Must have the group of the agent user for reconcile operation to
+    #     # work correctly
+    #     template_params={'group': grp.getgrgid(os.getgid()).gr_name},
+    # )
+    # deploy_file(
+    #     data=pkgutil.get_data(
+    #         'managed_nagios_plugin',
+    #         '_compat.py',
+    #     ),
+    #     destination='/usr/local/bin/_compat.py',
+    #     ownership='root.root',
+    #     permissions='400',
+    #     sudo=True,
+    # )
+    # deploy_file(
+    #     data=pkgutil.get_data(
+    #         'managed_nagios_plugin',
+    #         'utils.py',
+    #     ),
+    #     destination='/usr/local/bin/utils.py',
+    #     ownership='root.root',
+    #     permissions='400',
+    #     sudo=True,
+    # )
+    # deploy_file(
+    #     data=pkgutil.get_data(
+    #         'managed_nagios_plugin',
+    #         'constants.py',
+    #     ),
+    #     destination='/usr/local/bin/constants.py',
+    #     ownership='root.root',
+    #     permissions='400',
+    #     sudo=True,
+    # )
+    #
+    # ctx.logger.info(
+    #     'Creating directory structure for storing temporary rate data'
+    # )
+    # for rate_dir in ('nodes', 'instances'):
+    #     rate_storage_path = os.path.join(RATE_BASE_PATH, rate_dir)
+    #     run(['mkdir', '-p', rate_storage_path], sudo=True)
+    #     run(['chown', 'nagios.', rate_storage_path], sudo=True)
+    #     run(['restorecon', rate_storage_path], sudo=True)
+    #
+    # if props['ssl_certificate']:
+    #
+    #     if props['ssl_certificate'].startswith("-----BEGIN CERTIFICATE-----"):
+    #         deploy_file(
+    #             data=props['ssl_key'],
+    #             destination=SSL_KEY_PATH,
+    #             ownership='root.root',
+    #             permissions='440',
+    #             sudo=True,
+    #         )
+    #         deploy_file(
+    #             data=props['ssl_certificate'],
+    #             destination=SSL_CERT_PATH,
+    #             ownership='root.root',
+    #             permissions='444',
+    #             sudo=True,
+    #         )
+    #     else:
+    #         download_and_deploy_file_from_blueprint(
+    #             source=BLUEPRINT_SSL_KEY_PATH.format(
+    #                 key_file=props['ssl_key'],
+    #             ),
+    #             destination=SSL_KEY_PATH,
+    #             ownership='root.root',
+    #             permissions='440',
+    #             ctx=ctx,
+    #         )
+    #         download_and_deploy_file_from_blueprint(
+    #             source=BLUEPRINT_SSL_CERT_PATH.format(
+    #                 cert_file=props['ssl_certificate'],
+    #             ),
+    #             destination=SSL_CERT_PATH,
+    #             ownership='root.root',
+    #             permissions='444',
+    #             ctx=ctx,
+    #         )
+    # else:
+    #     ctx.logger.info('Generating SSL certificate')
+    #     generate_certs(SSL_KEY_PATH, SSL_CERT_PATH, ctx.logger)
+    # with open(SSL_CERT_PATH) as crt_handle:
+    #     ctx.instance.runtime_properties['ssl_certificate'] = crt_handle.read()
+    #
+    # ctx.logger.info('Reloading systemd configuration')
+    # reload_systemd_configuration()
 
 
 @operation
