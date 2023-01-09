@@ -65,28 +65,11 @@ def create(ctx):
     yum_install(text_type('epel-release'))
 
     ctx.logger.info('Installing required packages')
-    yum_install(['wget'])
     execute_for_sudo('curl -Lo /tmp/xi-latest.tar.gz https://assets.nagios.com/downloads/nagiosxi/xi-latest.tar.gz', ctx=ctx)
     execute_for_sudo('tar xzf /tmp/xi-latest.tar.gz -C /tmp', ctx=ctx)
     os.chdir('/tmp/nagiosxi')
     os.system('sudo ./fullinstall -n')
-    # execute_for_sudo('/tmp/nagiosxi/fullinstall', ctx=ctx)
 
-    # with urllib.request.urlopen(
-    #         'https://assets.nagios.com/downloads/nagiosxi/install.sh') as f:
-    #     html = f.read().decode('utf-8')
-    #     with tempfile.NamedTemporaryFile() as file:
-    #         file.write(html.encode())
-    #         run(['sh', file.name], sudo=True)
-
-    # run(['cd', '/tmp'], sudo=True)
-    # yum_install(['wget'])
-    # run(['wget',
-    #          'https://assets.nagios.com/downloads/nagiosxi/xi-latest.tar.gz'],
-    #         sudo=True)
-    # x = run(['tar', 'xzf', 'xi-latest.tar.gz'], sudo=True)
-    # x = run(['cd', 'nagiosxi'], sudo=True)
-    # x = run(['./fullinstall'], sudo=True)
     # yum_install([
     #     'mod_ssl',
     #     'nagios',
