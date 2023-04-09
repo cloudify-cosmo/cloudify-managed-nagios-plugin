@@ -1,5 +1,25 @@
 version: 2.1
 
+job-post-steps: &job-post-steps
+  post-steps:
+   - slack/notify_failed
+
+unittest-post-steps: &unittest-post-steps
+  post-steps:
+    - store_test_results:
+        path: /home/circleci/project/nosetests.xml
+    - store_artifacts:
+        path: /home/circleci/project/coverage.xml
+        prefix: tests
+    - slack/notify_failed
+
+orbs:
+  node: cloudify/public-unittest-orb@volatile
+  wagonorb: cloudify/wagon-bulder-orb@volatile
+  releaseorb: cloudify/release-orb@volatile
+  managerorb: cloudify/manager-orb@volatile
+  slack: cloudify/notify-slack@2
+
 checkout:
   post:
     - >
@@ -9,147 +29,80 @@ checkout:
         git checkout -qf FETCH_HEAD
       fi
 
-
 executors:
-  py27:
-    docker:
-      - image: circleci/python:2.7
 
   py36:
     docker:
       - image: circleci/python:3.6
 
-  wagon_generator:
+  cloudify-machine-py3:
     machine:
       image: ubuntu-2004:202201-02
 
-
-commands:
-  generate_py27_wagon:
-    steps:
-      - run:
-          name: Create Workspace Build directory.
-          command: mkdir -p workspace/build
-      - run:
-          name: Build py27 Wagon
-          command: |
-              git clone https://github.com/cloudify-cosmo/cloudify-wagon-build-containers.git
-              docker build -t cloudify-centos-7-wagon-builder cloudify-wagon-build-containers/centos_7_py2py3
-              docker run -v ~/project/:/packaging cloudify-centos-7-wagon-builder
-      - run:
-          name: copy wagon to workspace
-          command: cp *.wgn workspace/build/
-      - persist_to_workspace:
-          root: workspace
-          paths:
-            - build/*
-
-  generate_rhel_py27_wagon:
-    steps:
-      - run:
-          name: Create Workspace Build directory.
-          command: mkdir -p workspace/build
-      - run:
-          name: Build RHEL 27 Wagon
-          command: |
-              git clone https://github.com/cloudify-cosmo/cloudify-wagon-build-containers.git
-              docker build -t cloudify-redhat-7-wagon-builder cloudify-wagon-build-containers/redhat_7_py2py3 --build-arg USERNAME="$USERNAME" --build-arg PASSWORD="$PASSWORD"
-              docker run -v ~/project/:/packaging cloudify-redhat-7-wagon-builder:latest
-      - run:
-          name: copy wagon to workspace
-          command: cp *.wgn workspace/build/
-      - persist_to_workspace:
-          root: workspace
-          paths:
-            - build/*
-
-  release_plugin:
-    steps:
-      - run:
-          name: Download pip
-          command: curl "https://bootstrap.pypa.io/pip/3.6/get-pip.py" -o "get-pip.py"
-      - run:
-          name: Install pip
-          command: sudo python get-pip.py
-      - run:
-          name: Install virtualenv
-          command: pip install --user virtualenv
-      - run:
-          name: Init virtualenv
-          command: virtualenv env
-      - run:
-          name: install tox
-          command: pip install --user pygithub pyyaml==3.10
-      - run:
-          name: upgrade setuptools
-          command: pip install --upgrade setuptools
-      - run:
-          name: install local project
-          command: pip install https://github.com/cloudify-incubator/cloudify-ecosystem-test/archive/latest.zip
-      - attach_workspace:
-          at: workspace
-      - run: python .circleci/package_release.py
-
-
-jobs:
-  unittests_py27:
-    executor: py27
-    steps:
-      - checkout
-      - run_unittest_py27
-
-  wagon:
-    executor: wagon_generator
-    steps:
-      - checkout
-      - generate_py27_wagon
-
-  rhel_wagon:
-    executor: wagon_generator
-    steps:
-      - checkout
-      - generate_rhel_py27_wagon
-
-  release:
-    executor: py36
-    steps:
-      - checkout
-      - release_plugin
-
-
 workflows:
-  version: 2.1
+  version: 2
   tests:
-    jobs: &all_jobs
-      - wagon:
+    jobs:
+      - node/check_py3_compat_job
+      - node/unittests_job:
+          context: 
+            - slack-secrets
+          <<: *unittest-post-steps
+      - node/validate_version_job
+      - node/validate_documentation_job
+      - wagonorb/wagon:
           filters:
             branches:
               only: /([0-9\.]*\-build|master|dev)/
-      - rhel_wagon:
+      - wagonorb/rhel_wagon:
           filters:
             branches:
               only: /([0-9\.]*\-build|master|dev)/
-      - release:
+      - wagonorb/arch64_wagon:
+          filters:
+            branches:
+              only: /([0-9\.]*\-build|master|dev)/
+      - releaseorb/release:
           filters:
             branches:
               only: /master/
           requires:
-            - wagon
-            - rhel_wagon
+            - node/unittests_job
+            - wagonorb/wagon
+            - wagonorb/arch64_wagon
+            - wagonorb/rhel_wagon
+      - releaseorb/merge_docs_job:
+          filters:
+            branches:
+              only: /master/
+          requires:
+            - releaseorb/release
+            - node/validate_documentation_job
+
   nightly:
     triggers:
     - schedule:
-        cron: "0 1 * * *"
+        cron: "0 1 * * 0,1,3,5"
         filters:
           branches:
             only:
               - master
     jobs:
-      - wagon:
+      - node/check_py3_compat_job
+      - node/unittests_job:
+          context: 
+            - slack-secrets
+          <<: *unittest-post-steps
+      - node/validate_version_job
+      - wagonorb/wagon:
           filters:
             branches:
               only: /([0-9\.]*\-build|master|dev)/
-      - rhel_wagon:
+      - wagonorb/arch64_wagon:
+          filters:
+            branches:
+              only: /([0-9\.]*\-build|master|dev)/
+      - wagonorb/rhel_wagon:
           filters:
             branches:
               only: /([0-9\.]*\-build|master|dev)/
